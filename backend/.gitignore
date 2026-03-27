@@ -1,0 +1,6 @@
+.env
+
+storage/template/images/
+storage/template/pdf/
+storage/temp/
+storage/upload/
