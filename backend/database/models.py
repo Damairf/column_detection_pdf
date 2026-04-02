@@ -4,11 +4,10 @@ from database.database import Base
 
 
 class User(Base):
-
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    email = Column(String)
+    username = Column(String)
     password = Column(String)
     nama = Column(String)
     divisi = Column(String)
@@ -16,7 +15,6 @@ class User(Base):
 
 
 class Template(Base):
-
     __tablename__ = "template"
 
     id = Column(Integer, primary_key=True)
@@ -30,7 +28,6 @@ class Template(Base):
 
 
 class Dokumen(Base):
-
     __tablename__ = "dokumen"
 
     id = Column(Integer, primary_key=True)
@@ -43,7 +40,6 @@ class Dokumen(Base):
 
 
 class KolomTemplate(Base):
-
     __tablename__ = "kolom_template"
 
     id = Column(Integer, primary_key=True)
@@ -61,7 +57,6 @@ class KolomTemplate(Base):
 
 
 class HasilDeteksi(Base):
-
     __tablename__ = "hasil_deteksi"
 
     id = Column(Integer, primary_key=True)

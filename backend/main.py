@@ -1,23 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from routers import template_router
 from routers import detection_router
 from routers import dashboard_router
-
+from routers import auth
+from routers import profile_router
 from database.database import engine
 from database import models
 
-
-# buat tabel otomatis jika belum ada
+# Buat tabel otomatis jika belum ada
 models.Base.metadata.create_all(bind=engine)
-
 
 app = FastAPI(
     title="Document Detection API",
     version="1.0"
 )
-
 
 # CORS
 app.add_middleware(
@@ -28,26 +25,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Router auth (daftar & masuk)
+app.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["Authentication"]
+)
 
-# router template
+# Router template
 app.include_router(
     template_router.router,
     prefix="/template",
     tags=["Template"]
 )
 
-# router detection
+# Router detection
 app.include_router(
     detection_router.router,
     prefix="/detection",
     tags=["Detection"]
 )
 
-# dashboard detection
+# Router dashboard
 app.include_router(
     dashboard_router.router,
     prefix="/dashboard",
     tags=["Dashboard"]
+)
+
+# Router profile
+app.include_router(
+    profile_router.router,
+    prefix="/profile",
+    tags=["Profile"]
 )
 
 
