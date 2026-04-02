@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import template_router
 from routers import detection_router
-from routers import dashboard_router
+from routers import beranda_router
 from routers import auth
 from routers import profile_router
 from database.database import engine
@@ -46,11 +46,11 @@ app.include_router(
     tags=["Detection"]
 )
 
-# Router dashboard
+# Router beranda (tabel dokumen)
 app.include_router(
-    dashboard_router.router,
-    prefix="/dashboard",
-    tags=["Dashboard"]
+    beranda_router.router,
+    prefix="/beranda",
+    tags=["Beranda"]
 )
 
 # Router profile
