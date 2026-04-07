@@ -7,6 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 import os
 import re
+import glob
 import shutil
 import cv2
 
@@ -37,21 +38,20 @@ def get_current_user_id(
 
 
 def clean_filename(name: str) -> str:
-    """Replika fungsi clean_filename dari pdf_to_image.py."""
     name = name.replace(" ", "_")
     name = re.sub(r"[^\w\-]", "", name)
     return name
+
 
 def get_unique_filename(directory, filename):
     name, ext = os.path.splitext(filename)
     counter = 1
     new_filename = filename
-
     while os.path.exists(os.path.join(directory, new_filename)):
         new_filename = f"{name}({counter}){ext}"
         counter += 1
-
     return new_filename
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # SCHEMA
@@ -92,6 +92,10 @@ class SimpanTemplateRequest(BaseModel):
     resolusi_height: Optional[int] = None
 
 
+class UbahTemplateRequest(BaseModel):
+    nama_template: str
+
+
 class UpdateKolomTemplateRequest(BaseModel):
     template_id: int
     kolom_ids: List[int]
@@ -124,20 +128,15 @@ async def upload_pdf_only(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Upload PDF, convert ke image. Belum disimpan ke DB."""
-
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="File harus berformat PDF.")
 
     os.makedirs("storage/template/pdf", exist_ok=True)
     os.makedirs("storage/template/images", exist_ok=True)
 
-    upload_dir = "storage/template/pdf"
-
-    original_filename = file.filename
-    unique_filename = get_unique_filename(upload_dir, original_filename)
-
-    pdf_path = os.path.join(upload_dir, unique_filename)
+    upload_dir      = "storage/template/pdf"
+    unique_filename = get_unique_filename(upload_dir, file.filename)
+    pdf_path        = os.path.join(upload_dir, unique_filename)
 
     with open(pdf_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -145,7 +144,6 @@ async def upload_pdf_only(
     try:
         image_output_dir = f"storage/template/images/{os.path.splitext(unique_filename)[0]}"
         os.makedirs(image_output_dir, exist_ok=True)
-
         image_paths = convert_pdf_to_images(pdf_path, image_output_dir)
     except Exception as e:
         if os.path.exists(pdf_path):
@@ -161,11 +159,11 @@ async def upload_pdf_only(
     height, width = image.shape[:2]
 
     return {
-        "message":       "PDF berhasil diunggah dan dikonversi",
-        "nama_file":     unique_filename,
-        "pdf_path":      pdf_path.replace("\\", "/"),
-        "jml_halaman":   len(image_paths),
-        "image_paths":   image_paths,
+        "message":         "PDF berhasil diunggah dan dikonversi",
+        "nama_file":       unique_filename,
+        "pdf_path":        pdf_path.replace("\\", "/"),
+        "jml_halaman":     len(image_paths),
+        "image_paths":     image_paths,
         "resolusi_width":  width,
         "resolusi_height": height,
     }
@@ -177,25 +175,18 @@ def batal_upload(
     data: BatalUploadRequest,
     user_id: int = Depends(get_current_user_id)
 ):
-    """Hapus PDF dan image sementara saat user batal tambah template."""
-
     nama_file = data.nama_file.strip()
-
     if not nama_file or "/" in nama_file or "\\" in nama_file or ".." in nama_file:
         raise HTTPException(status_code=400, detail="nama_file tidak valid.")
 
-    deleted = []
-
+    deleted  = []
     pdf_path = f"storage/template/pdf/{nama_file}"
     if os.path.exists(pdf_path):
         os.remove(pdf_path)
         deleted.append(pdf_path)
 
     nama_tanpa_ext = os.path.splitext(nama_file)[0]
-    nama_clean     = clean_filename(nama_tanpa_ext)
-
-    image_folder = f"storage/template/images/{nama_tanpa_ext}"
-
+    image_folder   = f"storage/template/images/{nama_tanpa_ext}"
     if os.path.exists(image_folder) and os.path.isdir(image_folder):
         shutil.rmtree(image_folder)
         deleted.append(image_folder)
@@ -210,15 +201,11 @@ def simpan_kolom_sementara(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Simpan kolom dengan id_template NULL (sementara)."""
     kolom = models.KolomTemplate(
         id_template=None,
         nama_kolom=data.nama_kolom,
         halaman=data.halaman,
-        x1=data.x1,
-        y1=data.y1,
-        x2=data.x2,
-        y2=data.y2,
+        x1=data.x1, y1=data.y1, x2=data.x2, y2=data.y2,
         type=data.warna or "green",
         resolusi_width=data.resolusi_width,
         resolusi_height=data.resolusi_height,
@@ -236,7 +223,6 @@ def simpan_template(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Simpan template baru ke tabel template."""
     template = models.Template(
         id_user=user_id,
         nama_template=data.nama_template,
@@ -258,7 +244,6 @@ def update_kolom_template(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Update id_template pada kolom_template yang sebelumnya NULL."""
     db.query(models.KolomTemplate).filter(
         models.KolomTemplate.id.in_(data.kolom_ids)
     ).update(
@@ -276,7 +261,6 @@ def batal_kolom(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Hapus kolom sementara (id_template null) berdasarkan list id."""
     db.query(models.KolomTemplate).filter(
         models.KolomTemplate.id.in_(data.kolom_ids)
     ).delete(synchronize_session=False)
@@ -290,7 +274,6 @@ def get_template_list(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Ambil semua template milik user beserta jumlah kolomnya."""
     kolom_count = (
         db.query(
             models.KolomTemplate.id_template,
@@ -299,7 +282,6 @@ def get_template_list(
         .group_by(models.KolomTemplate.id_template)
         .subquery()
     )
-
     results = (
         db.query(
             models.Template.id,
@@ -313,7 +295,6 @@ def get_template_list(
         .order_by(models.Template.id.asc())
         .all()
     )
-
     return [
         TemplateResponse(
             id=row.id,
@@ -329,7 +310,6 @@ def get_template_list(
 # ── GET /template/ ────────────────────────────────────────────────────
 @router.get("/")
 def get_all_templates(db: Session = Depends(get_db)):
-    """Ambil semua template (tanpa filter user)."""
     templates = db.query(models.Template).all()
     return [
         {
@@ -353,7 +333,6 @@ async def upload_template(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Upload file PDF template dan simpan ke database."""
     os.makedirs("storage/template/pdf", exist_ok=True)
     os.makedirs("storage/template/images", exist_ok=True)
 
@@ -383,9 +362,9 @@ async def upload_template(
     db.refresh(template)
 
     return {
-        "message":       "Template berhasil diupload",
-        "template_id":   template.id,
-        "jml_halaman":   len(image_paths),
+        "message":         "Template berhasil diupload",
+        "template_id":     template.id,
+        "jml_halaman":     len(image_paths),
         "resolusi_width":  width,
         "resolusi_height": height,
     }
@@ -394,14 +373,10 @@ async def upload_template(
 # ── POST /template/add-column ─────────────────────────────────────────
 @router.post("/add-column")
 def add_column(
-    id_template: int,
-    nama_kolom: str,
-    halaman: int,
-    x1: int, y1: int, x2: int, y2: int,
-    type: str,
+    id_template: int, nama_kolom: str, halaman: int,
+    x1: int, y1: int, x2: int, y2: int, type: str,
     db: Session = Depends(get_db)
 ):
-    """Tambah kolom deteksi ke template."""
     template = db.query(models.Template).filter(models.Template.id == id_template).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template tidak ditemukan.")
@@ -429,17 +404,14 @@ def update_kolom(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Update data kolom template yang sudah ada."""
     kolom = db.query(models.KolomTemplate).filter(models.KolomTemplate.id == kolom_id).first()
     if not kolom:
         raise HTTPException(status_code=404, detail="Kolom tidak ditemukan.")
 
     kolom.nama_kolom = data.nama_kolom
     kolom.halaman    = data.halaman
-    kolom.x1 = data.x1
-    kolom.y1 = data.y1
-    kolom.x2 = data.x2
-    kolom.y2 = data.y2
+    kolom.x1 = data.x1; kolom.y1 = data.y1
+    kolom.x2 = data.x2; kolom.y2 = data.y2
     kolom.type = data.warna or kolom.type
     if data.resolusi_width:  kolom.resolusi_width  = data.resolusi_width
     if data.resolusi_height: kolom.resolusi_height = data.resolusi_height
@@ -450,14 +422,20 @@ def update_kolom(
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# ROUTE DINAMIS — harus selalu paling bawah
+# ROUTE DINAMIS — selalu paling bawah
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── GET /template/{template_id} ───────────────────────────────────────
 @router.get("/{template_id}")
-def get_template_detail(template_id: int, db: Session = Depends(get_db)):
-    """Ambil detail template beserta semua kolomnya."""
-    template = db.query(models.Template).filter(models.Template.id == template_id).first()
+def get_template_detail(
+    template_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    template = db.query(models.Template).filter(
+        models.Template.id == template_id,
+        models.Template.id_user == user_id
+    ).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template tidak ditemukan.")
 
@@ -480,17 +458,49 @@ def get_template_detail(template_id: int, db: Session = Depends(get_db)):
                 "halaman": k.halaman,
                 "x1": k.x1, "y1": k.y1, "x2": k.x2, "y2": k.y2,
                 "type": k.type,
+                "resolusi_width": k.resolusi_width,
+                "resolusi_height": k.resolusi_height,
             }
             for k in koloms
         ],
     }
 
 
+# ── PUT /template/{template_id} — ubah nama template ─────────────────
+@router.put("/ubah/{template_id}")
+def ubah_template(
+    template_id: int,
+    data: UbahTemplateRequest,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    """Update nama template. Hanya pemilik yang bisa mengubah."""
+    template = db.query(models.Template).filter(
+        models.Template.id == template_id,
+        models.Template.id_user == user_id
+    ).first()
+
+    if not template:
+        raise HTTPException(status_code=404, detail="Template tidak ditemukan.")
+
+    template.nama_template = data.nama_template.strip()
+    db.commit()
+    db.refresh(template)
+
+    return {"message": "Template berhasil diperbarui", "template_id": template.id}
+
+
 # ── DELETE /template/{template_id} ───────────────────────────────────
 @router.delete("/{template_id}")
-def delete_template(template_id: int, db: Session = Depends(get_db)):
-    """Hapus template beserta semua dokumen dan hasil deteksi terkait."""
-    template = db.query(models.Template).filter(models.Template.id == template_id).first()
+def delete_template(
+    template_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    template = db.query(models.Template).filter(
+        models.Template.id == template_id,
+        models.Template.id_user == user_id
+    ).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template tidak ditemukan.")
 
