@@ -4,12 +4,10 @@ import Daftar from '../views/Daftar.vue'
 import Beranda from '../views/Beranda.vue'
 import Template from '../views/Template.vue'
 import TemplateTambah from '../views/TemplateTambah.vue'
-import TemplateTambahKolomBaru from '../views/TemplateTambahKolomBaru.vue'
-import TemplateTambahKolomEdit from '../views/TemplateTambahKolomEdit.vue'
 import TemplateDetail from '../views/TemplateDetail.vue'
 import TemplateDetailUbah from '../views/TemplateDetailUbah.vue'
-import TemplateDetailUbahKolom from '../views/TemplateDetailUbahKolom.vue'
-import TemplateDetailUbahKolomBaru from '../views/TemplateDetailUbahKolomBaru.vue'
+import KolomBaru from '../views/KolomBaru.vue'
+import KolomEdit from '../views/KolomEdit.vue'
 import Profile from '../views/Profile.vue'
 
 const routes = [
@@ -17,15 +15,18 @@ const routes = [
   { path: '/masuk',   name: 'Masuk',   component: Masuk,   meta: { guestOnly: true } },
   { path: '/daftar',  name: 'Daftar',  component: Daftar,  meta: { guestOnly: true } },
   { path: '/beranda', name: 'Beranda', component: Beranda, meta: { requiresAuth: true } },
-  { path: '/template', name: 'Template', component: Template, meta: { requiresAuth: true } },
+
+  { path: '/template',        name: 'Template',       component: Template,       meta: { requiresAuth: true } },
   { path: '/template/tambah', name: 'TemplateTambah', component: TemplateTambah, meta: { requiresAuth: true } },
-  { path: '/template/tambah/kolom-baru', name: 'TemplateTambahKolomBaru', component: TemplateTambahKolomBaru, meta: { requiresAuth: true } },
-  { path: '/template/tambah/kolom-edit', name: 'TemplateTambahKolomEdit', component: TemplateTambahKolomEdit, meta: { requiresAuth: true } },
-  { path: '/template/detail/:id', name: 'TemplateDetail', component: TemplateDetail, meta: { requiresAuth: true } },
+
+  // Halaman kolom baru & edit — dipakai dari dua konteks berbeda via query param ?mode=tambah|detail&id=
+  { path: '/kolom/baru', name: 'KolomBaru', component: KolomBaru, meta: { requiresAuth: true } },
+  { path: '/kolom/edit', name: 'KolomEdit', component: KolomEdit, meta: { requiresAuth: true } },
+
+  { path: '/template/detail/:id',      name: 'TemplateDetail',     component: TemplateDetail,     meta: { requiresAuth: true } },
   { path: '/template/detail/:id/ubah', name: 'TemplateDetailUbah', component: TemplateDetailUbah, meta: { requiresAuth: true } },
-  { path: '/template/detail/:id/ubah/ubah-kolom', name: 'TemplateDetailUbahKolom', component: TemplateDetailUbahKolom, meta: { requiresAuth: true } },
-  { path: '/template/detail/:id/ubah/kolom-baru', name: 'TemplateDetailUbahKolomBaru', component: TemplateDetailUbahKolomBaru, meta: { requiresAuth: true } },
-  { path: '/profile', name: 'Profile', component: Profile, meta: { requiresAuth: true } },
+
+  { path: '/profile',      name: 'Profile',     component: Profile, meta: { requiresAuth: true } },
   { path: '/profile/ubah', name: 'ProfileUbah', component: Profile, meta: { requiresAuth: true } },
 ]
 
@@ -41,7 +42,7 @@ function isTokenValid() {
       localStorage.removeItem('token'); localStorage.removeItem('user'); return false
     }
     return true
-  } catch (e) {
+  } catch {
     localStorage.removeItem('token'); localStorage.removeItem('user'); return false
   }
 }

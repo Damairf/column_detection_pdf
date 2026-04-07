@@ -142,7 +142,9 @@ async def upload_pdf_only(
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        image_output_dir = f"storage/template/images/{os.path.splitext(unique_filename)[0]}"
+        nama_tanpa_ext = os.path.splitext(unique_filename)[0]
+        nama_clean     = clean_filename(nama_tanpa_ext)
+        image_output_dir = f"storage/template/images/{nama_clean}"
         os.makedirs(image_output_dir, exist_ok=True)
         image_paths = convert_pdf_to_images(pdf_path, image_output_dir)
     except Exception as e:
@@ -186,7 +188,8 @@ def batal_upload(
         deleted.append(pdf_path)
 
     nama_tanpa_ext = os.path.splitext(nama_file)[0]
-    image_folder   = f"storage/template/images/{nama_tanpa_ext}"
+    nama_clean     = clean_filename(nama_tanpa_ext)
+    image_folder   = f"storage/template/images/{nama_clean}"
     if os.path.exists(image_folder) and os.path.isdir(image_folder):
         shutil.rmtree(image_folder)
         deleted.append(image_folder)
@@ -514,6 +517,19 @@ def delete_template(
     db.query(models.KolomTemplate).filter(
         models.KolomTemplate.id_template == template_id
     ).delete()
+
+    pdf_path = template.path_template_pdf
+    
+    if pdf_path and os.path.exists(pdf_path):
+        os.remove(pdf_path)
+
+    nama_tanpa_ext = os.path.splitext(os.path.basename(pdf_path))[0]
+    nama_clean     = clean_filename(nama_tanpa_ext)
+    image_folder = f"storage/template/images/{nama_clean}"
+
+    if os.path.exists(image_folder) and os.path.isdir(image_folder):
+        shutil.rmtree(image_folder)
+
     db.delete(template)
     db.commit()
 

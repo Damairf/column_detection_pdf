@@ -202,7 +202,7 @@ function handleTambahKolom() {
       sessionStorage.setItem(SS_KEY, JSON.stringify(data))
     } catch {}
   }
-  router.push('/template/tambah/kolom-baru')
+  router.push({ path: '/kolom/baru', query: { mode: 'tambah' } })
 }
 
 async function hapusKolom(index, kolomId) {
@@ -226,7 +226,6 @@ async function hapusKolom(index, kolomId) {
       sessionStorage.setItem(SS_KEY, JSON.stringify(data))
     } catch {}
   }
-  console.log('HAPUS FILE:', namaFile.value)
 }
 
 async function handleSimpan() {
@@ -249,7 +248,7 @@ async function handleSimpan() {
     //         yang disimpan di Template.vue saat upload berhasil ──
     const resTemplate = await axios.post('/api/template/simpan', {
       nama_template:     namaTemplate.value.trim(),
-      pdf_path: data.pdf_path        || '',  // ← key: pdf_path
+      pdf_path:          data.pdf_path        || '',  // ← key: pdf_path
       jml_halaman:       data.jml_halaman     || 0,   // ← key: jml_halaman
       resolusi_width:    data.resolusi_width  || 0,   // ← key: resolusi_width
       resolusi_height:   data.resolusi_height || 0,   // ← key: resolusi_height
@@ -269,6 +268,7 @@ async function handleSimpan() {
       })
     }
 
+    sessionStorage.removeItem(SS_KEY)
     router.replace('/template')
 
   } catch (err) {
@@ -288,7 +288,7 @@ function handleEditKolom(index) {
       sessionStorage.setItem(SS_KEY, JSON.stringify(data))
     } catch {}
   }
-  router.push('/template/tambah/kolom-edit')
+  router.push({ path: '/kolom/edit', query: { mode: 'tambah' } })
 }
 
 function warnaHex(warna) {

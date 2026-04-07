@@ -13,16 +13,29 @@
       <p class="text-red-400 text-sm">{{ errorMsg }}</p>
     </div>
     <div v-else>
-      <div class="flex items-center justify-between mb-5">
-        <button @click="router.replace('/template')"
-          class="cursor-pointer px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition shadow-sm">
-          Kembali
-        </button>
-        <button @click="router.push(`/template/detail/${templateId}/ubah`)"
-          class="cursor-pointer px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm">
-          Ubah
-        </button>
-      </div>
+        <div class="flex items-center justify-between mb-5">
+            <!-- Kiri -->
+            <button
+                @click="router.replace('/template')"
+                class="cursor-pointer px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition shadow-sm">
+                Kembali
+            </button>
+
+            <!-- Kanan -->
+            <div class="flex items-center gap-2">
+                <button
+                @click="router.push(`/template/detail/${templateId}/ubah`)"
+                class="cursor-pointer px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm">
+                Ubah
+                </button>
+
+                <button
+                @click="showDeleteModal = true"
+                class="cursor-pointer px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition shadow-sm">
+                Hapus
+                </button>
+            </div>
+        </div>
 
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="flex gap-0 border-b border-gray-200">
@@ -74,6 +87,49 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 text-center shadow-lg">
+
+            <!-- Icon -->
+            <div class="flex justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-1-3H10a1 1 0 00-1 1v1h6V5a1 1 0 00-1-1z" />
+            </svg>
+            </div>
+
+            <!-- Text -->
+            <h2 class="text-lg font-semibold text-gray-800 mb-2">
+            Apakah anda yakin ingin menghapusnya?
+            </h2>
+            <p class="text-sm text-gray-500 mb-6">
+            Data yang sudah dihapus tidak dapat dipulihkan kembali
+            </p>
+
+            <!-- Button -->
+            <div class="flex justify-center gap-3">
+            <button
+                @click="showDeleteModal = false"
+                :disabled="deleting"
+                class="px-5 py-2 bg-gray-800 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 disabled:opacity-50">
+                Batal
+            </button>
+            <button
+                @click="handleDelete"
+                :disabled="deleting"
+                class="flex items-center justify-center gap-2 px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50">
+
+                <svg v-if="deleting" class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" fill="none"/>
+                </svg>
+
+                <span>{{ deleting ? 'Menghapus...' : 'Hapus' }}</span>
+            </button>
+            </div>
+
+        </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -91,6 +147,29 @@ const loading   = ref(false)
 const errorMsg  = ref('')
 const BASE_URL  = import.meta.env.VITE_API_BASE_URL || ''
 
+const deleting = ref(false)
+const showDeleteModal = ref(false)
+
+async function handleDelete() {
+    deleting.value = true
+    try {
+        const token = localStorage.getItem('token')
+
+        await axios.delete(`/api/template/${templateId.value}`, {
+        headers: { Authorization: `Bearer ${token}` }
+        })
+
+        showDeleteModal.value = false
+
+        router.replace('/template')
+
+    } catch (err) {
+        console.error(err)
+        alert('Gagal menghapus template')
+    } finally {
+        deleting.value = false
+    }
+}
 const pdfUrl = computed(() => {
   const path = template.value.path_template_pdf
   if (!path) return ''
