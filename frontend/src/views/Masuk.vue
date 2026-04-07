@@ -4,7 +4,7 @@
     <!-- Background image -->
     <div class="absolute inset-0 z-0">
       <img
-        src="/src/assets/bg-nasmoco.jpeg"
+        src="/src/assets/bg-nasmoco.avif"
         alt="Nasmoco Background"
         class="w-full h-full object-cover"
       />

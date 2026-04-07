@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from routers import template_router
 from routers import detection_router
 from routers import beranda_router
@@ -15,6 +16,8 @@ app = FastAPI(
     title="Document Detection API",
     version="1.0"
 )
+
+app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
 # CORS
 app.add_middleware(

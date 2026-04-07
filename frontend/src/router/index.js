@@ -3,6 +3,9 @@ import Masuk from '../views/Masuk.vue'
 import Daftar from '../views/Daftar.vue'
 import Beranda from '../views/Beranda.vue'
 import Template from '../views/Template.vue'
+import TemplateTambah from '../views/TemplateTambah.vue'
+import TemplateTambahKolomBaru from '../views/TemplateTambahKolomBaru.vue'
+import TemplateTambahKolomEdit from '../views/TemplateTambahKolomEdit.vue'
 import Profile from '../views/Profile.vue'
 
 const routes = [
@@ -32,6 +35,24 @@ const routes = [
     path: '/template',
     name: 'Template',
     component: Template,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/template/tambah',
+    name: 'TemplateTambah',
+    component: TemplateTambah,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/template/tambah/kolom-baru',
+    name: 'TemplateTambahKolomBaru',
+    component: TemplateTambahKolomBaru,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/template/tambah/kolom-edit',
+    name: 'TemplateTambahKolomEdit',
+    component: TemplateTambahKolomEdit,
     meta: { requiresAuth: true }
   },
   {

@@ -10,7 +10,6 @@
         @click="router.push('/profile')"
         title="Lihat Profile"
       >
-        <!-- Avatar -->
         <div class="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
           <img
             src="/src/assets/avatar-default.jpg"
@@ -20,7 +19,6 @@
             ref="avatarImg"
           />
         </div>
-        <!-- Info user -->
         <div class="overflow-hidden">
           <p class="text-sm font-bold text-gray-800 truncate">{{ user.nama || 'Pengguna' }}</p>
           <p class="text-xs text-gray-500 truncate">{{ user.divisi || '-' }}</p>
@@ -61,15 +59,13 @@
       </nav>
     </aside>
 
-    <!-- ── Area Kanan (Navbar Atas + Konten) ─────────────────────── -->
+    <!-- ── Area Kanan ────────────────────────────────────────────── -->
     <div class="flex flex-col flex-1 overflow-hidden">
 
       <!-- Navbar Atas -->
       <header class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-5 flex-shrink-0 shadow-sm">
 
-        <!-- Kiri: Undo, Redo, Reload, Breadcrumb -->
         <div class="flex items-center gap-2">
-
           <!-- Undo -->
           <button
             @click="handleUndo"
@@ -110,27 +106,22 @@
             </svg>
           </button>
 
-          <!-- Separator -->
           <span class="text-gray-300 mx-1">|</span>
 
-          <!-- Breadcrumb / Petunjuk halaman -->
+          <!-- Breadcrumb -->
           <div class="flex items-center gap-1.5 text-sm text-gray-600">
             <span class="text-gray-400">/</span>
             <span class="font-semibold text-gray-800">{{ pageTitle }}</span>
           </div>
         </div>
 
-        <!-- Kanan: Logo Nasmoco -->
+        <!-- Logo -->
         <div class="flex items-center">
-          <img
-            src="/src/assets/logo-nasmoco.png"
-            alt="Nasmoco"
-            class="h-8 object-contain"
-          />
+          <img src="/src/assets/logo-nasmoco.png" alt="Nasmoco" class="h-8 object-contain" />
         </div>
       </header>
 
-      <!-- Konten Halaman -->
+      <!-- Konten -->
       <main class="flex-1 overflow-auto p-6">
         <slot />
       </main>
@@ -143,123 +134,85 @@ import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
-const route = useRoute()
+const route  = useRoute()
 const isReloading = ref(false)
-const avatarImg = ref(null)
+const avatarImg   = ref(null)
 
-// Daftar halaman yang termasuk dalam area auth (tidak boleh keluar dari sini via undo)
-const authPages = ['/beranda', '/template', '/profile', '/profile/ubah']
+// ── Semua halaman dalam area auth ─────────────────────────────────────
+const authPages = [
+  '/beranda',
+  '/template',
+  '/template/tambah',
+  '/template/tambah/kolom-baru',
+  '/profile',
+  '/profile/ubah',
+]
 
-// Track history halaman dalam area auth
 const authHistory = ref([route.path])
-
-// Track redo history — diisi saat undo, dikosongkan saat navigasi biasa
 const redoHistory = ref([])
+const isUndoing   = ref(false)
+const isRedoing   = ref(false)
 
-// Flag untuk membedakan navigasi undo/redo vs navigasi biasa
-const isUndoing = ref(false)
-const isRedoing = ref(false)
-
-// Pantau setiap perpindahan route untuk update history
 watch(() => route.path, (newPath) => {
-  // Jika sedang undo → skip tambah history, sudah dikelola di handleUndo
-  if (isUndoing.value) {
-    isUndoing.value = false
-    return
-  }
-
-  // Jika sedang redo → skip tambah history, sudah dikelola di handleRedo
-  if (isRedoing.value) {
-    isRedoing.value = false
-    return
-  }
-
+  if (isUndoing.value) { isUndoing.value = false; return }
+  if (isRedoing.value) { isRedoing.value = false; return }
   if (authPages.includes(newPath)) {
-    // Navigasi biasa → hapus redo history (seperti browser asli)
     redoHistory.value = []
-
-    // Hindari duplikat berurutan
     if (authHistory.value[authHistory.value.length - 1] !== newPath) {
       authHistory.value.push(newPath)
     }
   }
 })
 
-// Tombol undo aktif jika ada lebih dari 1 history
 const canUndo = computed(() => authHistory.value.length > 1)
-
-// Tombol redo aktif jika ada redo history
 const canRedo = computed(() => redoHistory.value.length > 0)
 
 function handleUndo() {
   if (!canUndo.value) return
-
   isUndoing.value = true
-
-  // Pindahkan halaman saat ini ke redo history
-  const currentPage = authHistory.value[authHistory.value.length - 1]
-  redoHistory.value.push(currentPage)
-
-  // Hapus dari undo history
+  const cur = authHistory.value[authHistory.value.length - 1]
+  redoHistory.value.push(cur)
   authHistory.value.pop()
-
-  // Navigasi ke halaman sebelumnya
-  const prevPage = authHistory.value[authHistory.value.length - 1]
-  router.replace(prevPage)
+  router.replace(authHistory.value[authHistory.value.length - 1])
 }
 
 function handleRedo() {
   if (!canRedo.value) return
-
   isRedoing.value = true
-
-  // Ambil halaman terakhir dari redo history
-  const nextPage = redoHistory.value.pop()
-
-  // Tambahkan kembali ke undo history
-  authHistory.value.push(nextPage)
-
-  // Navigasi ke halaman redo
-  router.replace(nextPage)
+  const next = redoHistory.value.pop()
+  authHistory.value.push(next)
+  router.replace(next)
 }
 
-// Ambil data user dari localStorage
 const user = computed(() => {
-  try {
-    return JSON.parse(localStorage.getItem('user')) || {}
-  } catch {
-    return {}
-  }
+  try { return JSON.parse(localStorage.getItem('user')) || {} }
+  catch { return {} }
 })
 
-// Judul halaman berdasarkan route
+// ── Breadcrumb ────────────────────────────────────────────────────────
 const pageTitle = computed(() => {
   const titles = {
-    '/beranda': 'Beranda',
-    '/template': 'Template',
-    '/profile': 'Profile',
-    '/profile/ubah': 'Profile / Ubah'
+    '/beranda':                      'Beranda',
+    '/template':                     'Template',
+    '/template/tambah':              'Template / Tambah',
+    '/template/tambah/kolom-baru':   'Template / Tambah / Kolom Baru',
+    '/profile':                      'Profile',
+    '/profile/ubah':                 'Profile / Ubah',
   }
-  return titles[route.path] || route.path.replace('/', '')
+  return titles[route.path] || route.path.replace(/^\//, '')
 })
 
-// Cek apakah route sedang aktif
-function isActive(path) {
-  return route.path === path
+// ── isActive: aktif jika exact match atau sub-route ───────────────────
+function isActive(basePath) {
+  return route.path === basePath || route.path.startsWith(basePath + '/')
 }
 
-// Reload halaman dengan animasi
 function reloadPage() {
   isReloading.value = true
-  setTimeout(() => {
-    window.location.reload()
-  }, 300)
+  setTimeout(() => { window.location.reload() }, 300)
 }
 
-// Fallback jika avatar tidak ada
 function handleAvatarError() {
-  if (avatarImg.value) {
-    avatarImg.value.style.display = 'none'
-  }
+  if (avatarImg.value) avatarImg.value.style.display = 'none'
 }
 </script>

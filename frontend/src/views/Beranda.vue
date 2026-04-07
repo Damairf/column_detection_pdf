@@ -32,7 +32,7 @@
         >
           <button
             class="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg
-                   hover:bg-gray-700 transition shadow-sm"
+                   hover:bg-gray-800 transition shadow-sm"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -309,7 +309,7 @@ function handleMouseEnter() {
 }
 
 function handleMouseLeave() {
-  hideTimeout = setTimeout(() => { showUrutDropdown.value = false }, 200)
+  hideTimeout = setTimeout(() => { showUrutDropdown.value = false }, 150)
 }
 
 function selectSort(value) {
