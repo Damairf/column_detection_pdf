@@ -34,7 +34,7 @@ def run_detection_pipeline(
 
         aligned_output = os.path.join(
             working_dir,
-            f"aligned_page_{page_index+1}.png"
+            f"aligned_page_{page_index+1}.jpeg"
         )
 
         aligned_path = align_document(
@@ -158,7 +158,7 @@ def run_detection_pipeline(
 
         debug_output = os.path.join(
             working_dir,
-            f"debug_page_{page_index+1}.png"
+            f"debug_page_{page_index+1}.jpeg"
         )
 
         draw_debug_boxes(

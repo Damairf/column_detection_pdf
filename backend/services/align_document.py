@@ -261,7 +261,7 @@ def align_document(template_path: str, scan_path: str, output_path: str):
         base_name   = filename_no_ext
         page_number = "1"
 
-    aligned_filename = f"{base_name}_aligned_page_{page_number}.png"
+    aligned_filename = f"{base_name}_aligned_page_{page_number}.jpeg"
     final_path = os.path.join(
         output_path if os.path.isdir(output_path) else os.path.dirname(output_path),
         aligned_filename

@@ -41,7 +41,7 @@ async def detect_document(
     template_folder = "storage/template/images"
 
     template_images = sorted(
-        glob.glob(os.path.join(template_folder, "*.png"))
+        glob.glob(os.path.join(template_folder, "*.jpeg"))
     )
 
     if len(template_images) == 0:

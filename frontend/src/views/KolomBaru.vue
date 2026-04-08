@@ -224,12 +224,12 @@ function muatGambar(halaman) {
   } else {
     // ── FIX: bangun path image dari path_template_pdf ──────────────
     // PDF: storage/template/pdf/namafile.pdf
-    // Image: storage/template/images/namafile/namafile_page_1.png
+    // Image: storage/template/images/namafile/namafile_page_1.jpeg
     if (pdfPathServer.value) {
       const cleanPath = pdfPathServer.value.replace(/\\/g, '/')
       const fileName  = cleanPath.split('/').pop()
       const baseName = cleanFileName(fileName.replace(/\.[^/.]+$/, ''))
-      imageSrc.value  = `${BASE_URL}/storage/template/images/${baseName}/${baseName}_page_${halaman}.png`
+      imageSrc.value  = `${BASE_URL}/storage/template/images/${baseName}/${baseName}_page_${halaman}.jpeg`
     }
   }
   console.log('IMAGE SRC FINAL:', imageSrc.value)

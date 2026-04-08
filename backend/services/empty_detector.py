@@ -52,9 +52,9 @@ def _check_text(img, temp, threshold, min_blob_area, debug_name=None):
     img_only = cv2.subtract(img, temp_mask)
 
     if debug_name:
-        cv2.imwrite(f"debug_{debug_name}_img.png", img)
-        cv2.imwrite(f"debug_{debug_name}_temp.png", temp)
-        cv2.imwrite(f"debug_{debug_name}_img_only.png", img_only)
+        cv2.imwrite(f"debug_{debug_name}_img.jpeg", img)
+        cv2.imwrite(f"debug_{debug_name}_temp.jpeg", temp)
+        cv2.imwrite(f"debug_{debug_name}_img_only.jpeg", img_only)
 
     num_labels, _, stats, centroids = cv2.connectedComponentsWithStats(
         img_only,

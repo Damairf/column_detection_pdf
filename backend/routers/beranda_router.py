@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -69,24 +70,37 @@ def get_dokumen_list(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    dokumens = (
-        db.query(models.Dokumen, models.Template)
-        .outerjoin(models.Template, models.Dokumen.id_template == models.Template.id)
+    results = (
+        db.query(
+            models.Dokumen.id,
+            models.Dokumen.nama_dokumen,
+            models.Dokumen.status,
+            models.Dokumen.path_dokumen,
+            models.Dokumen.id_template,
+            (
+                select(models.Template.nama_template)
+                .where(models.Template.id == models.Dokumen.id_template)
+                .correlate(models.Dokumen)
+                .scalar_subquery()
+            ).label("nama_template"),
+            models.Dokumen.created_at,
+        )
         .filter(models.Dokumen.id_user == user_id)
         .order_by(models.Dokumen.created_at.desc())
         .all()
     )
+
     return [
         {
-            "id":            d.Dokumen.id,
-            "nama_dokumen":  d.Dokumen.nama_dokumen,
-            "status":        d.Dokumen.status,
-            "path_dokumen":  d.Dokumen.path_dokumen,
-            "id_template":   d.Dokumen.id_template,
-            "nama_template": d.Template.nama_template if d.Template else None,
-            "created_at":    d.Dokumen.created_at,
+            "id": row.id,
+            "nama_dokumen": row.nama_dokumen,
+            "status": row.status,
+            "path_dokumen": row.path_dokumen,
+            "id_template": row.id_template,
+            "nama_template": row.nama_template,
+            "created_at": row.created_at,
         }
-        for d in dokumens
+        for row in results
     ]
 
 

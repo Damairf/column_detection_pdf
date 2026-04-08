@@ -241,7 +241,7 @@ function muatGambar(halaman) {
       const cleanPath = pdfPathServer.value.replace(/\\/g, '/')
       const fileName  = cleanPath.split('/').pop()
       const baseName  = cleanFileName(fileName.replace(/\.[^/.]+$/, ''))
-      imageSrc.value  = `${BASE_URL}/storage/template/images/${baseName}/${baseName}_page_${halaman}.png`
+      imageSrc.value  = `${BASE_URL}/storage/template/images/${baseName}/${baseName}_page_${halaman}.jpeg`
     }
   }
 

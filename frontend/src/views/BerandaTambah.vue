@@ -8,7 +8,7 @@
       class="fixed inset-0 z-50 flex items-center justify-center"
       style="background: rgba(0,0,0,0.35);"
     >
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-6 p-8">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-6 p-8">
 
         <!-- Drop Zone -->
         <div

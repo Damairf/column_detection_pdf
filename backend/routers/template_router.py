@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, select
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -277,23 +277,19 @@ def get_template_list(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    kolom_count = (
-        db.query(
-            models.KolomTemplate.id_template,
-            func.count(models.KolomTemplate.id).label('jml_kolom')
-        )
-        .group_by(models.KolomTemplate.id_template)
-        .subquery()
-    )
     results = (
         db.query(
             models.Template.id,
             models.Template.nama_template,
             models.Template.jml_halaman,
             models.Template.created_at,
-            func.coalesce(kolom_count.c.jml_kolom, 0).label('jml_kolom')
+            (
+                select(func.count(models.KolomTemplate.id))
+                .where(models.KolomTemplate.id_template == models.Template.id)
+                .correlate(models.Template)
+                .scalar_subquery()
+            ).label("jml_kolom")
         )
-        .outerjoin(kolom_count, models.Template.id == kolom_count.c.id_template)
         .filter(models.Template.id_user == user_id)
         .order_by(models.Template.id.asc())
         .all()
@@ -303,7 +299,7 @@ def get_template_list(
             id=row.id,
             nama_template=row.nama_template,
             jml_halaman=row.jml_halaman,
-            jml_kolom=row.jml_kolom,
+            jml_kolom=row.jml_kolom or 0,
             created_at=row.created_at
         )
         for row in results

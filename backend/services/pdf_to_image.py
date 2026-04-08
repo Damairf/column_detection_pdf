@@ -11,8 +11,7 @@ def clean_filename(name: str):
 
     return name
 
-
-def convert_pdf_to_images(pdf_path: str, output_folder: str, dpi: int = 300):
+def convert_pdf_to_images(pdf_path: str, output_folder: str, dpi: int = 150):
 
     os.makedirs(output_folder, exist_ok=True)
 
@@ -28,7 +27,8 @@ def convert_pdf_to_images(pdf_path: str, output_folder: str, dpi: int = 300):
         pages = convert_from_path(
             pdf_path,
             dpi=dpi,
-            poppler_path=POPPLER_PATH
+            poppler_path=POPPLER_PATH,
+            thread_count=4
         )
 
     except Exception as e:
@@ -39,10 +39,10 @@ def convert_pdf_to_images(pdf_path: str, output_folder: str, dpi: int = 300):
 
     for i, page in enumerate(pages):
 
-        image_name = f"{filename_clean}_page_{i+1}.png"
+        image_name = f"{filename_clean}_page_{i+1}.jpg"
         image_path = os.path.join(output_folder, image_name)
 
-        page.save(image_path, "PNG")
+        page.save(image_path, "JPEG", quality=85, optimize=True)
 
         image_paths.append(image_path)
 
