@@ -59,9 +59,10 @@
           </div>
         </div>
 
-        <!-- Tambah -->
+        <!-- Tambah → navigasi ke /beranda/tambah -->
         <button
-          class="flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium
+          @click="router.push('/beranda/tambah')"
+          class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium
                  rounded-lg hover:bg-gray-50 transition shadow-sm"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -224,47 +225,35 @@ const sortOptions = [
 
 // ── Fetch data dari API ───────────────────────────────────────────────
 async function fetchData() {
-  loading.value = true
+  loading.value  = true
   errorMsg.value = ''
   try {
     const token = localStorage.getItem('token')
-    const response = await axios.get('/api/beranda/dokumen', {
+    const res   = await axios.get('/api/beranda/dokumen', {
       headers: { Authorization: `Bearer ${token}` }
     })
-    allData.value = response.data
+    allData.value = res.data
   } catch (err) {
-    if (err.response?.status === 401) {
-      errorMsg.value = 'Sesi habis. Silakan login ulang.'
-    } else {
-      errorMsg.value = 'Gagal memuat data. Coba muat ulang halaman.'
-    }
+    errorMsg.value = err.response?.status === 401
+      ? 'Sesi habis. Silakan login ulang.'
+      : 'Gagal memuat data. Coba muat ulang halaman.'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  fetchData()
-})
+onMounted(() => fetchData())
+watch(searchQuery, () => { currentPage.value = 1 })
 
-// Reset halaman ke 1 jika query pencarian berubah
-watch(searchQuery, () => {
-  currentPage.value = 1
-})
-
-// ── Format ID → D-000001 ──────────────────────────────────────────────
+// ── Format helpers ────────────────────────────────────────────────────
 function formatId(id) {
   return 'D-' + String(id).padStart(6, '0')
 }
 
-// ── Format Tanggal → DD/MM/YYYY ───────────────────────────────────────
 function formatTanggal(isoString) {
   if (!isoString) return '-'
   const d = new Date(isoString)
-  const dd = String(d.getDate()).padStart(2, '0')
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const yyyy = d.getFullYear()
-  return `${dd}/${mm}/${yyyy}`
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
 // ── Computed ──────────────────────────────────────────────────────────
@@ -293,25 +282,22 @@ const sortedData = computed(() => {
   }
 })
 
-const totalPages = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
-
+const totalPages    = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
 const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   return sortedData.value.slice(start, start + itemsPerPage)
 })
 
-// ── Sort ──────────────────────────────────────────────────────────────
+// ── Dropdown Urut ─────────────────────────────────────────────────────
 let hideTimeout = null
 
 function handleMouseEnter() {
   if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null }
   showUrutDropdown.value = true
 }
-
 function handleMouseLeave() {
   hideTimeout = setTimeout(() => { showUrutDropdown.value = false }, 150)
 }
-
 function selectSort(value) {
   sortKey.value = sortKey.value === value ? '' : value
   showUrutDropdown.value = false
@@ -322,7 +308,6 @@ function selectSort(value) {
 function goToPage(page) {
   currentPage.value = Math.max(1, Math.min(page, totalPages.value))
 }
-
 function onPageInputChange(e) {
   const val = parseInt(e.target.value)
   if (!isNaN(val)) goToPage(val)

@@ -8,6 +8,7 @@ import TemplateDetail from '../views/TemplateDetail.vue'
 import TemplateDetailUbah from '../views/TemplateDetailUbah.vue'
 import KolomBaru from '../views/KolomBaru.vue'
 import KolomEdit from '../views/KolomEdit.vue'
+import BerandaTambah from '../views/BerandaTambah.vue'
 import Profile from '../views/Profile.vue'
 
 const routes = [
@@ -15,6 +16,8 @@ const routes = [
   { path: '/masuk',   name: 'Masuk',   component: Masuk,   meta: { guestOnly: true } },
   { path: '/daftar',  name: 'Daftar',  component: Daftar,  meta: { guestOnly: true } },
   { path: '/beranda', name: 'Beranda', component: Beranda, meta: { requiresAuth: true } },
+
+  { path: '/beranda/tambah', name: 'BerandaTambah', component: BerandaTambah, meta: { requiresAuth: true } },
 
   { path: '/template',        name: 'Template',       component: Template,       meta: { requiresAuth: true } },
   { path: '/template/tambah', name: 'TemplateTambah', component: TemplateTambah, meta: { requiresAuth: true } },

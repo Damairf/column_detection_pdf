@@ -88,6 +88,7 @@ const pageTitle = computed(() => {
   // Route statis
   const map = {
     '/beranda':          'Beranda',
+    '/beranda/tambah':   'Beranda / Tambah',
     '/template':         'Template',
     '/template/tambah':  'Template / Tambah',
     '/profile':          'Profile',
