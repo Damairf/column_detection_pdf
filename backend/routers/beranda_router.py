@@ -122,7 +122,7 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
         jml_halaman_template = template.jml_halaman or 1
 
         # ── Validasi halaman ──────────────────────────────────────────
-        if jml_halaman_dokumen < jml_halaman_template:
+        if jml_halaman_dokumen != jml_halaman_template:
             dokumen.status = "Error"
             db.commit()
             return
@@ -159,35 +159,58 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
                         template_folder = full
                         break
 
-        # ── Jalankan pipeline ─────────────────────────────────────────
-        try:
-            results = run_detection_pipeline(
-                dokumen_image_folder = image_folder,
-                template_id          = dokumen.id_template,
-                fields               = fields,
-                template_image_base  = template_folder,
-                working_dir          = "storage/temp"
-            )
-        except ValueError as e:
-            msg = str(e)
-            if "ERROR" in msg or "halaman" in msg.lower():
+        results = []
+        # ── LOOP PER HALAMAN ─────────────────────────────────────
+        for halaman in range(1, jml_halaman_dokumen + 1):
+            current_image_path = scan_images[halaman - 1]
+
+            # Filter field hanya untuk halaman ini
+            fields_per_page = {
+                k: v for k, v in fields.items()
+                if v["page"] == halaman
+            }
+
+            if not fields_per_page:
+                continue
+
+            try:
+                page_result = run_detection_pipeline(
+                    dokumen_image_folder = image_folder,
+                    template_id          = dokumen.id_template,
+                    fields               = fields_per_page,   # ← FIX DI SINI
+                    template_image_base  = template_folder,
+                    working_dir          = "storage/temp"
+                )
+
+                # Simpan hasil per halaman
+                if isinstance(page_result, list):
+                    for r in page_result:
+                        r["page"] = halaman
+                    results.extend(page_result)
+                else:
+                    page_result["page"] = halaman
+                    results.append(page_result)
+
+            except ValueError as e:
                 dokumen.status = "Error"
-            else:
-                dokumen.status = "Error"
-            db.commit()
-            return
+                db.commit()
+                return
 
         # ── Simpan hasil_deteksi per kolom ────────────────────────────
         ada_kosong = False
 
         for page_result in results:
+            halaman_result = page_result.get("page", 1)
+
             for field_name, status_kolom in page_result["results"].items():
 
                 # Cari kolom template berdasarkan nama_kolom & id_template
                 base_name = field_name.split("__hal")[0]  # hilangkan suffix halaman jika ada
+
                 kolom = db.query(models.KolomTemplate).filter(
                     models.KolomTemplate.id_template == dokumen.id_template,
                     models.KolomTemplate.nama_kolom  == base_name,
+                    models.KolomTemplate.halaman     == halaman_result
                 ).first()
 
                 if kolom:

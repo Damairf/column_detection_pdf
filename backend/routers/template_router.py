@@ -42,6 +42,31 @@ def clean_filename(name: str) -> str:
     name = re.sub(r"[^\w\-]", "", name)
     return name
 
+def recalculate_dokumen_status(db: Session, template_id: int):
+    """
+    Update status semua dokumen berdasarkan hasil_deteksi yang tersisa.
+    TANPA deteksi ulang.
+    """
+
+    dokumens = db.query(models.Dokumen).filter(
+        models.Dokumen.id_template == template_id
+    ).all()
+
+    for dok in dokumens:
+        hasil_list = db.query(models.HasilDeteksi).filter(
+            models.HasilDeteksi.id_dokumen == dok.id
+        ).all()
+
+        # Jika tidak ada hasil sama sekali → anggap benar (tidak ada kolom)
+        if not hasil_list:
+            dok.status = "Benar"
+            continue
+
+        ada_kosong = any(h.status == "KOSONG" for h in hasil_list)
+
+        dok.status = "Salah" if ada_kosong else "Benar"
+
+    db.commit()
 
 def get_unique_filename(directory, filename):
     name, ext = os.path.splitext(filename)
@@ -264,10 +289,29 @@ def batal_kolom(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
+    # Ambil template_id sebelum kolom dihapus
+    koloms = db.query(models.KolomTemplate).filter(
+        models.KolomTemplate.id.in_(data.kolom_ids)
+    ).all()
+
+    template_ids = list(set(k.id_template for k in koloms if k.id_template))
+
+    # ── Hapus hasil_deteksi terkait kolom ─────────────
+    db.query(models.HasilDeteksi).filter(
+        models.HasilDeteksi.id_kolom_template.in_(data.kolom_ids)
+    ).delete(synchronize_session=False)
+
+    # ── Hapus kolom_template ─────────────────────────
     db.query(models.KolomTemplate).filter(
         models.KolomTemplate.id.in_(data.kolom_ids)
     ).delete(synchronize_session=False)
+
     db.commit()
+
+    # ── Recalculate dokumen TANPA deteksi ulang ─────
+    for tid in template_ids:
+        recalculate_dokumen_status(db, tid)
+
     return {"message": f"{len(data.kolom_ids)} kolom berhasil dihapus"}
 
 

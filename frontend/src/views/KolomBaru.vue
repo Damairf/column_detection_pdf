@@ -296,14 +296,16 @@ async function simpanKolom() {
         x1: koordinat.value.x1, y1: koordinat.value.y1, x2: koordinat.value.x2, y2: koordinat.value.y2,
         resolusi_width: resolusi.value.width, resolusi_height: resolusi.value.height, warna: warnaAktif.value }
     } else {
-      const res = await axios.post('/api/template/add-column', null, {
-        params: { id_template: parseInt(detailId.value), nama_kolom: namaKolom.value.trim(),
-          halaman: halamanDipilih.value, x1: koordinat.value.x1, y1: koordinat.value.y1,
-          x2: koordinat.value.x2, y2: koordinat.value.y2, type: warnaAktif.value },
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      kolomBaru = { kolom_id: res.data.kolom_id, nama_kolom: namaKolom.value.trim(), halaman: halamanDipilih.value,
-        x1: koordinat.value.x1, y1: koordinat.value.y1, x2: koordinat.value.x2, y2: koordinat.value.y2, warna: warnaAktif.value }
+        kolomBaru = {
+          kolom_id: `temp-${Date.now()}`,
+          nama_kolom: namaKolom.value.trim(),
+          halaman: halamanDipilih.value,
+          x1: koordinat.value.x1,
+          y1: koordinat.value.y1,
+          x2: koordinat.value.x2,
+          y2: koordinat.value.y2,
+          warna: warnaAktif.value
+        }
     }
 
     const raw  = sessionStorage.getItem(ssKey.value)

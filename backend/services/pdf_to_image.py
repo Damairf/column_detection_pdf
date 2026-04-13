@@ -39,7 +39,7 @@ def convert_pdf_to_images(pdf_path: str, output_folder: str, dpi: int = 150):
 
     for i, page in enumerate(pages):
 
-        image_name = f"{filename_clean}_page_{i+1}.jpg"
+        image_name = f"{filename_clean}_page_{i+1}.jpeg"
         image_path = os.path.join(output_folder, image_name)
 
         page.save(image_path, "JPEG", quality=85, optimize=True)

@@ -126,6 +126,42 @@
 
       </div>
     </div>
+    <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 text-center shadow-lg">
+
+      <!-- Icon -->
+      <div class="flex justify-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-1-3H10a1 1 0 00-1 1v1h6V5a1 1 0 00-1-1z" />
+        </svg>
+      </div>
+
+      <!-- Text -->
+      <h2 class="text-lg font-semibold text-gray-800 mb-2">
+        Apakah anda yakin ingin menghapus kolom ini?
+      </h2>
+      <p class="text-sm text-gray-500 mb-6">
+        Data yang sudah dihapus tidak dapat dipulihkan kembali
+      </p>
+
+      <!-- Button -->
+      <div class="flex justify-center gap-3">
+        <button
+          @click="showDeleteModal = false"
+          class="px-5 py-2 bg-gray-800 text-white rounded-lg text-sm font-semibold hover:bg-gray-700">
+          Batal
+        </button>
+
+        <button
+          @click="confirmDeleteKolom"
+          class="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700">
+          Hapus
+        </button>
+      </div>
+
+    </div>
+  </div>
   </AppLayout>
 </template>
 
@@ -147,6 +183,12 @@ const errorMsg     = ref('')
 const isSimpan     = ref(false)
 const errorNama    = ref('')
 const serverError  = ref('')
+
+const deletedKolomIds = ref([])
+const newKolomList = ref([])
+const snapshotKolom = ref([])
+const showDeleteModal = ref(false)
+const selectedKolomId = ref(null)
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const SS_KEY   = 'template_detail_ubah'
@@ -172,15 +214,26 @@ function formatTanggal(iso) {
 async function fetchDetail() {
   loading.value = true
   errorMsg.value = ''
+
   try {
     const token = localStorage.getItem('token')
-    const res   = await axios.get(`/api/template/${templateId.value}`, {
+
+    const res = await axios.get(`/api/template/${templateId.value}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
+
     template.value     = res.data
     namaTemplate.value = res.data.nama_template || ''
+
+    snapshotKolom.value = JSON.parse(
+      JSON.stringify(res.data.kolom || [])
+    )
+
   } catch (err) {
-    errorMsg.value = err.response?.status === 404 ? 'Template tidak ditemukan.' : 'Gagal memuat data.'
+    errorMsg.value =
+      err.response?.status === 404
+        ? 'Template tidak ditemukan.'
+        : 'Gagal memuat data.'
   } finally {
     loading.value = false
   }
@@ -194,9 +247,8 @@ onMounted(async () => {
   if (raw) {
     try {
       const data = JSON.parse(raw)
-      if (data.kolomBaru && template.value.kolom) {
-        // Tambahkan ke tampilan lokal (tidak perlu fetch ulang)
-        template.value.kolom.push({
+      if (data.kolomBaru) {
+        newKolomList.value.push({
           id:         data.kolomBaru.kolom_id,
           nama_kolom: data.kolomBaru.nama_kolom,
           halaman:    data.kolomBaru.halaman,
@@ -204,6 +256,13 @@ onMounted(async () => {
           x2: data.kolomBaru.x2, y2: data.kolomBaru.y2,
           type: data.kolomBaru.warna,
         })
+
+        // tampilkan juga di UI (gabungan)
+        template.value.kolom = [
+          ...snapshotKolom.value,
+          ...newKolomList.value
+        ]
+
         data.kolomBaru = null
         sessionStorage.setItem(SS_KEY, JSON.stringify(data))
       }
@@ -213,6 +272,11 @@ onMounted(async () => {
 
 // ── Batal ─────────────────────────────────────────────────────────────
 function handleBatal() {
+  template.value.kolom = JSON.parse(JSON.stringify(snapshotKolom.value))
+
+  deletedKolomIds.value = []
+  newKolomList.value = []
+
   sessionStorage.removeItem(SS_KEY)
   router.replace(`/template/detail/${templateId.value}`)
 }
@@ -234,6 +298,22 @@ async function handleKonfirmasi() {
       nama_template: namaTemplate.value.trim()
     }, { headers: { Authorization: `Bearer ${token}` } })
 
+    if (deletedKolomIds.value.length > 0) {
+      await axios.delete('/api/template/batal-kolom', {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { kolom_ids: deletedKolomIds.value }
+      })
+    }
+
+    if (newKolomList.value.length > 0) {
+      await axios.post('/api/template/tambah-kolom', {
+        template_id: templateId.value,
+        kolom: newKolomList.value
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    }
+
     sessionStorage.removeItem(SS_KEY)
     router.replace(`/template/detail/${templateId.value}`)
   } catch (err) {
@@ -244,15 +324,25 @@ async function handleKonfirmasi() {
 }
 
 // ── Hapus kolom langsung dari DB ──────────────────────────────────────
-async function hapusKolom(kolomId) {
-  if (!confirm('Hapus kolom ini?')) return
+function hapusKolom(kolomId) {
+  selectedKolomId.value = kolomId
+  showDeleteModal.value = true
+}
+
+async function confirmDeleteKolom() {
   try {
-    const token = localStorage.getItem('token')
-    await axios.delete('/api/template/batal-kolom', {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { kolom_ids: [kolomId] }
-    })
-    template.value.kolom = template.value.kolom.filter(k => k.id !== kolomId)
+    if (!deletedKolomIds.value.includes(selectedKolomId.value)) {
+      deletedKolomIds.value.push(selectedKolomId.value)
+    }
+
+    // update UI
+    template.value.kolom = template.value.kolom.filter(
+      k => k.id !== selectedKolomId.value
+    )
+
+    showDeleteModal.value = false
+    selectedKolomId.value = null
+
   } catch (err) {
     alert(err.response?.data?.detail || 'Gagal menghapus kolom.')
   }
