@@ -10,12 +10,9 @@
     >
       <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-6 p-8">
 
-        <!-- Drop Zone -->
         <div
           class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-14 px-6 mb-6 transition-colors cursor-pointer"
-          :class="isDragging
-            ? 'border-gray-500 bg-gray-100'
-            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
+          :class="isDragging ? 'border-gray-500 bg-gray-100' : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
           @dragover.prevent="isDragging = true"
           @dragleave.prevent="isDragging = false"
           @drop.prevent="handleDrop"
@@ -76,40 +73,37 @@
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
 
-      <!-- Nama Template (dropdown pilih template) -->
+      <!-- Nama Template (searchable dropdown) -->
       <div class="mb-6">
         <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Template</label>
         <div class="relative">
-          <div class="relative">
-            <input
-              v-model="searchTemplate"
-              @focus="showDropdown = true"
-              placeholder="Cari template..."
-              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400"
-            />
-
-            <div
-              v-if="showDropdown"
-              class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow max-h-48 overflow-y-auto"
-            >
-              <div
-                v-for="t in filteredTemplate"
-                :key="t.id"
-                @click="pilihTemplate(t)"
-                class="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100"
-              >
-                {{ t.nama_template }}
-              </div>
-              <div v-if="filteredTemplate.length === 0" class="px-4 py-2 text-sm text-gray-400">
-                Tidak ditemukan nama template
-              </div>
-            </div>
-          </div>
-          <!-- Icon dropdown -->
+          <input
+            v-model="searchTemplate"
+            @focus="showDropdown = true"
+            placeholder="Cari template..."
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+            :class="errorTemplate ? 'border-red-400' : ''"
+          />
           <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
+          </div>
+          <div
+            v-if="showDropdown"
+            class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow max-h-48 overflow-y-auto"
+          >
+            <div
+              v-for="t in filteredTemplate"
+              :key="t.id"
+              @click="pilihTemplate(t)"
+              class="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100"
+            >
+              {{ t.nama_template }}
+            </div>
+            <div v-if="filteredTemplate.length === 0" class="px-4 py-2 text-sm text-gray-400">
+              Tidak ditemukan nama template
+            </div>
           </div>
         </div>
         <p v-if="errorTemplate" class="text-red-500 text-xs mt-1">{{ errorTemplate }}</p>
@@ -121,28 +115,21 @@
           <span class="text-sm font-semibold text-gray-700">Tanggal</span>
           <span class="text-sm font-semibold text-gray-700">File Unggahan</span>
         </div>
-
-        <div
-          :class="dokumenList.length > 5 ? 'max-h-72 overflow-y-auto' : ''"
-          class="space-y-2 pr-1"
-        >
+        <div :class="dokumenList.length > 5 ? 'max-h-72 overflow-y-auto' : ''" class="space-y-2 pr-1">
           <div
             v-for="(dok, idx) in dokumenList"
             :key="idx"
             class="grid grid-cols-[10rem_1fr_auto] gap-x-3 items-center"
           >
-            <!-- Tanggal -->
             <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
               {{ formatTanggal(dok.tanggal) }}
             </div>
-            <!-- Nama file -->
             <div class="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <span class="truncate">{{ dok.namaFile }}</span>
             </div>
-            <!-- Tombol hapus -->
             <button
               @click="hapusDokumen(idx)"
               class="cursor-pointer p-2 text-gray-400 hover:text-red-500 transition flex-shrink-0"
@@ -156,7 +143,7 @@
         </div>
       </div>
 
-      <!-- Tombol Tambah Dokumen Baru -->
+      <!-- Tambah Dokumen Baru -->
       <button
         @click="openUploadModal"
         class="w-full py-3 border border-gray-200 rounded-lg text-sm text-gray-400
@@ -182,7 +169,7 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
-          Menyimpan...
+          Menyimpan & memproses...
         </span>
         <span v-else>Simpan</span>
       </button>
@@ -192,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
@@ -207,17 +194,18 @@ const uploadError     = ref('')
 const fileInputRef    = ref(null)
 
 // ── State form ────────────────────────────────────────────────────────
-const searchTemplate = ref('')
-const showDropdown = ref(false)
+const searchTemplate  = ref('')
+const showDropdown    = ref(false)
 const templateDipilih = ref('')
 const templateList    = ref([])
-const dokumenList     = ref([])   // { namaFile, pdfPath, tanggal }
+// dokumenList: { namaFile, pdfPath, imageFolder, tanggal }
+const dokumenList     = ref([])
 const isBatal         = ref(false)
 const isSimpan        = ref(false)
 const errorTemplate   = ref('')
 const serverError     = ref('')
 
-// ── Fetch daftar template untuk dropdown ─────────────────────────────
+// ── Fetch template list ───────────────────────────────────────────────
 async function fetchTemplateList() {
   try {
     const token = localStorage.getItem('token')
@@ -230,87 +218,62 @@ async function fetchTemplateList() {
   }
 }
 
-onMounted(() => fetchTemplateList())
-
-const filteredTemplate = computed(() => {
-  return templateList.value
-    .filter(t =>
-      t.nama_template.toLowerCase().includes(searchTemplate.value.toLowerCase())
-    )
-    .slice(0, 6) // maksimal 6 tampil
-})
+const filteredTemplate = computed(() =>
+  templateList.value
+    .filter(t => t.nama_template.toLowerCase().includes(searchTemplate.value.toLowerCase()))
+    .slice(0, 6)
+)
 
 function pilihTemplate(t) {
   templateDipilih.value = t.id
-  searchTemplate.value = t.nama_template
-  showDropdown.value = false
+  searchTemplate.value  = t.nama_template
+  showDropdown.value    = false
 }
 
 function handleClickOutside(e) {
   if (!e.target.closest('.relative')) {
-
-    const isMatch = templateList.value.some(
+    const match = templateList.value.some(
       t => t.nama_template.toLowerCase() === searchTemplate.value.toLowerCase()
     )
-
-    if (!isMatch) {
-      searchTemplate.value = ''
+    if (!match) {
+      searchTemplate.value  = ''
       templateDipilih.value = ''
     }
-
     showDropdown.value = false
   }
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
-
 // ── Format tanggal ────────────────────────────────────────────────────
-function formatTanggal(isoOrDate) {
-  if (!isoOrDate) return '-'
-  const d = new Date(isoOrDate)
+function formatTanggal(iso) {
+  if (!iso) return '-'
+  const d = new Date(iso)
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
 // ── Upload PDF ────────────────────────────────────────────────────────
-function openUploadModal() {
-  uploadError.value = ''
-  showUploadModal.value = true
-}
-
-function closeUploadModal() {
-  uploadError.value = ''
-  showUploadModal.value = false
-}
-
+function openUploadModal()  { uploadError.value = ''; showUploadModal.value = true }
+function closeUploadModal() { uploadError.value = ''; showUploadModal.value = false }
 function triggerFileInput() { fileInputRef.value?.click() }
+
 function handleFileInput(e) {
   const files = Array.from(e.target.files)
-
   if (dokumenList.value.length + files.length > 10) {
-    uploadError.value = 'Batas maksimal unggah 10 dokumen'
+    uploadError.value = 'Batas maksimal unggah 10 dokumen.'
     e.target.value = ''
     return
   }
-
-  files.forEach(file => prosesFile(file))
+  files.forEach(f => prosesFile(f))
   e.target.value = ''
 }
+
 function handleDrop(e) {
   isDragging.value = false
   const files = Array.from(e.dataTransfer.files)
-
   if (dokumenList.value.length + files.length > 10) {
-    uploadError.value = 'Batas maksimal unggah 10 dokumen'
+    uploadError.value = 'Batas maksimal unggah 10 dokumen.'
     return
   }
-
-  files.forEach(file => prosesFile(file))
+  files.forEach(f => prosesFile(f))
 }
 
 async function prosesFile(file) {
@@ -329,11 +292,12 @@ async function prosesFile(file) {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
     })
 
-    // Tambahkan ke daftar dokumen
+    // Simpan image_folder dari response backend
     dokumenList.value.push({
-      namaFile: file.name,
-      pdfPath:  res.data.pdf_path,
-      tanggal:  new Date().toISOString(),
+      namaFile:    file.name,
+      pdfPath:     res.data.pdf_path,
+      imageFolder: res.data.image_folder,   // ← folder image untuk deteksi
+      tanggal:     new Date().toISOString(),
     })
 
     showUploadModal.value = false
@@ -342,11 +306,10 @@ async function prosesFile(file) {
     uploadError.value = err.response?.data?.detail || 'Gagal mengunggah file. Coba lagi.'
   } finally {
     isUploading.value = false
-    uploadError.value = ''
   }
 }
 
-// ── Hapus dokumen dari list (+ hapus file di server) ──────────────────
+// ── Hapus dokumen ─────────────────────────────────────────────────────
 async function hapusDokumen(idx) {
   const dok = dokumenList.value[idx]
   if (dok.pdfPath) {
@@ -363,7 +326,6 @@ async function hapusDokumen(idx) {
   dokumenList.value.splice(idx, 1)
 }
 
-// ── Hapus semua dokumen sementara di server ───────────────────────────
 async function hapusSemuaDokumen() {
   for (const dok of dokumenList.value) {
     if (dok.pdfPath) {
@@ -378,14 +340,14 @@ async function hapusSemuaDokumen() {
   }
 }
 
-// ── Kembali → hapus semua file sementara ─────────────────────────────
+// ── Kembali ───────────────────────────────────────────────────────────
 async function handleKembali() {
   isBatal.value = true
   await hapusSemuaDokumen()
   router.replace('/beranda')
 }
 
-// ── Simpan ────────────────────────────────────────────────────────────
+// ── Simpan → trigger deteksi di backend ──────────────────────────────
 async function handleSimpan() {
   errorTemplate.value = ''
   serverError.value   = ''
@@ -403,15 +365,17 @@ async function handleSimpan() {
   try {
     const token = localStorage.getItem('token')
 
-    // Simpan semua dokumen ke database
     await axios.post('/api/beranda/simpan-dokumen', {
-      id_template: parseInt(templateDipilih.value),
+      id_template:  parseInt(templateDipilih.value),
       dokumen_list: dokumenList.value.map(d => ({
         nama_dokumen: d.namaFile,
         pdf_path:     d.pdfPath,
+        // image_folder tidak perlu dikirim karena backend menghitungnya
+        // dari pdf_path (sama logikanya dengan clean_filename)
       }))
     }, { headers: { Authorization: `Bearer ${token}` } })
 
+    // Redirect ke beranda — status akan Memuat, lalu berubah saat deteksi selesai
     router.replace('/beranda')
 
   } catch (err) {
@@ -421,8 +385,10 @@ async function handleSimpan() {
   }
 }
 
-// ── Hapus file sementara jika komponen di-unmount sebelum simpan ──────
-onBeforeUnmount(async () => {
-  if (!isSimpan.value) await hapusSemuaDokumen()
+// ── Lifecycle ─────────────────────────────────────────────────────────
+onMounted(() => {
+  fetchTemplateList()
+  document.addEventListener('click', handleClickOutside)
 })
+
 </script>

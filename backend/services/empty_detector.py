@@ -6,8 +6,7 @@ def check_empty(processed_img,
                 processed_temp,
                 threshold=0.015,
                 min_blob_area=120,
-                field_type='text',
-                debug_name=None):
+                field_type='text'):
 
     def ensure_binary(img):
 
@@ -38,23 +37,17 @@ def check_empty(processed_img,
             img,
             temp,
             threshold,
-            min_blob_area,
-            debug_name=debug_name
+            min_blob_area
         )
 
 
-def _check_text(img, temp, threshold, min_blob_area, debug_name=None):
+def _check_text(img, temp, threshold, min_blob_area,):
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (12, 12))
 
     temp_mask = cv2.dilate(temp, kernel, iterations=2)
 
     img_only = cv2.subtract(img, temp_mask)
-
-    if debug_name:
-        cv2.imwrite(f"debug_{debug_name}_img.jpeg", img)
-        cv2.imwrite(f"debug_{debug_name}_temp.jpeg", temp)
-        cv2.imwrite(f"debug_{debug_name}_img_only.jpeg", img_only)
 
     num_labels, _, stats, centroids = cv2.connectedComponentsWithStats(
         img_only,

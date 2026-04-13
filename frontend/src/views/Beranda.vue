@@ -4,7 +4,6 @@
     <!-- ── Toolbar: Cari + Urut + Tambah ──────────────────────────── -->
     <div class="flex items-center justify-between mb-4">
 
-      <!-- Kolom Cari -->
       <div class="relative">
         <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -21,56 +20,42 @@
         />
       </div>
 
-      <!-- Tombol Urut & Tambah -->
       <div class="flex items-center gap-2">
 
-        <!-- Urut dengan Dropdown (hover) -->
-        <div
-          class="relative"
-          @mouseenter="handleMouseEnter"
-          @mouseleave="handleMouseLeave"
-        >
-          <button
-            class="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg
-                   hover:bg-gray-800 transition shadow-sm"
-          >
+        <!-- Urut -->
+        <div class="relative" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
+          <button class="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg
+                         hover:bg-gray-800 transition shadow-sm">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
             </svg>
             Urut
           </button>
-
-          <div
-            v-if="showUrutDropdown"
-            class="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden"
-          >
+          <div v-if="showUrutDropdown"
+            class="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
             <button
-              v-for="opt in sortOptions"
-              :key="opt.value"
+              v-for="opt in sortOptions" :key="opt.value"
               @click="selectSort(opt.value)"
               class="w-full text-left px-4 py-2.5 text-sm transition"
-              :class="sortKey === opt.value
-                ? 'bg-gray-900 text-white font-medium'
-                : 'text-gray-700 hover:bg-gray-100'"
+              :class="sortKey === opt.value ? 'bg-gray-900 text-white font-medium' : 'text-gray-700 hover:bg-gray-100'"
             >
               {{ opt.label }}
             </button>
           </div>
         </div>
 
-        <!-- Tambah → navigasi ke /beranda/tambah -->
+        <!-- Tambah -->
         <button
           @click="router.push('/beranda/tambah')"
-          class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium
-                 rounded-lg hover:bg-gray-50 transition shadow-sm"
+          class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700
+                 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           Tambah
         </button>
-
       </div>
     </div>
 
@@ -90,11 +75,11 @@
             </tr>
           </thead>
           <tbody>
-            <!-- Loading state -->
+
             <tr v-if="loading">
               <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">
                 <div class="flex items-center justify-center gap-2">
-                  <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
@@ -103,14 +88,10 @@
               </td>
             </tr>
 
-            <!-- Error state -->
             <tr v-else-if="errorMsg">
-              <td colspan="6" class="px-5 py-10 text-center text-red-400 text-sm">
-                {{ errorMsg }}
-              </td>
+              <td colspan="6" class="px-5 py-10 text-center text-red-400 text-sm">{{ errorMsg }}</td>
             </tr>
 
-            <!-- Data rows -->
             <tr
               v-else
               v-for="row in paginatedData"
@@ -119,16 +100,20 @@
             >
               <td class="px-5 py-3 text-center text-gray-700 font-mono text-xs">{{ formatId(row.id) }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_dokumen }}</td>
-              <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_template }}</td>
+              <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_template || '—' }}</td>
               <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(row.created_at) }}</td>
               <td class="px-5 py-3 text-center">
                 <span
-                  class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
-                  :class="row.status === 'BENAR'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-600'"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
+                  :class="badgeClass(row.status)"
                 >
-                  {{ row.status === 'BENAR' ? 'Benar' : 'Salah' }}
+                  <!-- Spinner untuk Memuat -->
+                  <svg v-if="row.status === 'Memuat'" class="animate-spin h-3 w-3"
+                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-30" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  {{ labelStatus(row.status) }}
                 </span>
               </td>
               <td class="px-5 py-3 text-center">
@@ -141,7 +126,6 @@
               </td>
             </tr>
 
-            <!-- Empty state -->
             <tr v-if="!loading && !errorMsg && paginatedData.length === 0">
               <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">
                 Tidak ada data ditemukan.
@@ -157,21 +141,16 @@
           @click="goToPage(currentPage - 1)"
           :disabled="currentPage === 1"
           class="w-9 h-9 flex items-center justify-center rounded-lg font-bold transition"
-          :class="currentPage === 1
-            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            : 'bg-gray-900 text-white hover:bg-gray-700 cursor-pointer'"
+          :class="currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-700 cursor-pointer'"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <input
-          type="number"
-          :value="currentPage"
-          @change="onPageInputChange"
-          @keydown.enter="onPageInputChange"
-          min="1"
-          :max="totalPages"
+          type="number" :value="currentPage"
+          @change="onPageInputChange" @keydown.enter="onPageInputChange"
+          min="1" :max="totalPages"
           class="w-12 h-9 text-center border border-gray-300 rounded-lg text-sm font-medium text-gray-700
                  focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent
                  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -180,9 +159,7 @@
           @click="goToPage(currentPage + 1)"
           :disabled="currentPage === totalPages || totalPages === 0"
           class="w-9 h-9 flex items-center justify-center rounded-lg font-bold transition"
-          :class="currentPage === totalPages || totalPages === 0
-            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            : 'bg-gray-900 text-white hover:bg-gray-700 cursor-pointer'"
+          :class="currentPage === totalPages || totalPages === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-700 cursor-pointer'"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
@@ -191,12 +168,11 @@
       </div>
 
     </div>
-
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
@@ -213,7 +189,6 @@ const itemsPerPage     = 10
 const showUrutDropdown = ref(false)
 const sortKey          = ref('')
 
-// ── Opsi Urut ─────────────────────────────────────────────────────────
 const sortOptions = [
   { label: 'A - Z (Menurun)',   value: 'az-desc'  },
   { label: 'A - Z (Menaik)',    value: 'az-asc'   },
@@ -223,9 +198,9 @@ const sortOptions = [
   { label: 'Tanggal (Menaik)',  value: 'tgl-asc'  },
 ]
 
-// ── Fetch data dari API ───────────────────────────────────────────────
-async function fetchData() {
-  loading.value  = true
+// ── Fetch data ────────────────────────────────────────────────────────
+async function fetchData(silent = false) {
+  if (!silent) loading.value = true
   errorMsg.value = ''
   try {
     const token = localStorage.getItem('token')
@@ -234,26 +209,61 @@ async function fetchData() {
     })
     allData.value = res.data
   } catch (err) {
-    errorMsg.value = err.response?.status === 401
-      ? 'Sesi habis. Silakan login ulang.'
-      : 'Gagal memuat data. Coba muat ulang halaman.'
+    if (!silent) {
+      errorMsg.value = err.response?.status === 401
+        ? 'Sesi habis. Silakan login ulang.'
+        : 'Gagal memuat data. Coba muat ulang halaman.'
+    }
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
-onMounted(() => fetchData())
-watch(searchQuery, () => { currentPage.value = 1 })
+// ── Auto-polling: refresh setiap 5 detik selama ada status Memuat ────
+let pollingTimer = null
 
-// ── Format helpers ────────────────────────────────────────────────────
-function formatId(id) {
-  return 'D-' + String(id).padStart(6, '0')
+function startPollingIfNeeded() {
+  const hasMemuat = allData.value.some(r => r.status === 'Memuat')
+  if (hasMemuat && !pollingTimer) {
+    pollingTimer = setInterval(async () => {
+      await fetchData(true)  // silent refresh
+      const stillMemuat = allData.value.some(r => r.status === 'Memuat')
+      if (!stillMemuat) {
+        clearInterval(pollingTimer)
+        pollingTimer = null
+      }
+    }, 5000)
+  }
 }
 
-function formatTanggal(isoString) {
-  if (!isoString) return '-'
-  const d = new Date(isoString)
+// Format helpers
+function formatId(id) { return 'D-' + String(id).padStart(6, '0') }
+function formatTanggal(iso) {
+  if (!iso) return '-'
+  const d = new Date(iso)
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
+}
+
+// ── Badge status ──────────────────────────────────────────────────────
+// Status dari backend: "Benar" | "Salah" | "Memuat" | "Error"
+function badgeClass(status) {
+  switch (status) {
+    case 'Benar':   return 'bg-green-100 text-green-700'
+    case 'Salah':   return 'bg-red-100 text-red-600'
+    case 'Memuat': return 'bg-gray-100 text-gray-500'
+    case 'Error':   return 'bg-orange-100 text-orange-600'
+    default:        return 'bg-gray-100 text-gray-500'
+  }
+}
+
+function labelStatus(status) {
+  switch (status) {
+    case 'Benar':   return 'Benar'
+    case 'Salah':   return 'Salah'
+    case 'Memuat': return 'Memuat'
+    case 'Error':   return 'Error'
+    default:        return status || '—'
+  }
 }
 
 // ── Computed ──────────────────────────────────────────────────────────
@@ -288,9 +298,8 @@ const paginatedData = computed(() => {
   return sortedData.value.slice(start, start + itemsPerPage)
 })
 
-// ── Dropdown Urut ─────────────────────────────────────────────────────
+// ── Sort ──────────────────────────────────────────────────────────────
 let hideTimeout = null
-
 function handleMouseEnter() {
   if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null }
   showUrutDropdown.value = true
@@ -305,17 +314,27 @@ function selectSort(value) {
 }
 
 // ── Pagination ────────────────────────────────────────────────────────
-function goToPage(page) {
-  currentPage.value = Math.max(1, Math.min(page, totalPages.value))
-}
+function goToPage(page) { currentPage.value = Math.max(1, Math.min(page, totalPages.value)) }
 function onPageInputChange(e) {
   const val = parseInt(e.target.value)
   if (!isNaN(val)) goToPage(val)
   e.target.value = currentPage.value
 }
 
-// ── Detail ────────────────────────────────────────────────────────────
-function lihatDetail(id) {
-  router.push(`/beranda/detail/${id}`)
-}
+function lihatDetail(id) { router.push(`/beranda/detail/${id}`) }
+
+// ── Lifecycle ─────────────────────────────────────────────────────────
+watch(searchQuery, () => { currentPage.value = 1 })
+
+// Mulai polling setelah data di-load jika ada Memuat
+watch(allData, () => startPollingIfNeeded(), { deep: false })
+
+onMounted(async () => {
+  await fetchData()
+  startPollingIfNeeded()
+})
+
+onBeforeUnmount(() => {
+  if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null }
+})
 </script>
