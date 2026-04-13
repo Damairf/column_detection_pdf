@@ -100,10 +100,12 @@ const pageTitle = computed(() => {
   if (p === '/kolom/baru') return `${q} / Kolom Baru`
   if (p === '/kolom/edit') return `${q} / Edit Kolom`
 
+  // Route detail beranda dinamis
+  if (/^\/beranda\/detail\/\d+$/.test(p)) return 'Beranda / Detail'
+
   // Route detail template dinamis
   if (/^\/template\/detail\/\d+$/.test(p))       return 'Template / Detail'
   if (/^\/template\/detail\/\d+\/ubah$/.test(p)) return 'Template / Detail / Ubah'
-  if (/^\/template\/detail\/\d+\/ubah\/kolom-baru$/.test(p)) return 'Template / Detail / Ubah / Kolom Baru'
 
   return p.replace(/^\//, '')
 })
@@ -116,6 +118,10 @@ function isActive(basePath) {
       || route.path.startsWith('/template/')
       || route.path === '/kolom/baru'
       || route.path === '/kolom/edit'
+  }
+  if (basePath === '/beranda') {
+    return route.path === '/beranda'
+      || route.path.startsWith('/beranda/')
   }
   return route.path === basePath || route.path.startsWith(basePath + '/')
 }

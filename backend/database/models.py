@@ -35,6 +35,7 @@ class Dokumen(Base):
     nama_dokumen = Column(String)
     status = Column(String)
     path_dokumen = Column(String)
+    path_pdf = Column(String)
     id_template = Column(Integer, ForeignKey("template.id"))
     created_at = Column(TIMESTAMP, server_default=func.now())
 

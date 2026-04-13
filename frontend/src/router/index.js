@@ -9,6 +9,7 @@ import TemplateDetailUbah from '../views/TemplateDetailUbah.vue'
 import KolomBaru from '../views/KolomBaru.vue'
 import KolomEdit from '../views/KolomEdit.vue'
 import BerandaTambah from '../views/BerandaTambah.vue'
+import BerandaDetail from '../views/BerandaDetail.vue'
 import Profile from '../views/Profile.vue'
 
 const routes = [
@@ -18,6 +19,7 @@ const routes = [
   { path: '/beranda', name: 'Beranda', component: Beranda, meta: { requiresAuth: true } },
 
   { path: '/beranda/tambah', name: 'BerandaTambah', component: BerandaTambah, meta: { requiresAuth: true } },
+  { path: '/beranda/detail/:id', name: 'BerandaDetail', component: BerandaDetail, meta: { requiresAuth: true } },
 
   { path: '/template',        name: 'Template',       component: Template,       meta: { requiresAuth: true } },
   { path: '/template/tambah', name: 'TemplateTambah', component: TemplateTambah, meta: { requiresAuth: true } },

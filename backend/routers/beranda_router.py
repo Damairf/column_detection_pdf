@@ -383,6 +383,7 @@ def simpan_dokumen(
             nama_dokumen = item.nama_dokumen,
             status       = "Memuat",           # status awal
             path_dokumen = image_folder,         # simpan folder image, bukan pdf
+            path_pdf     = item.pdf_path,        # simpan path pdf untuk referensi
             id_template  = data.id_template,
         )
         db.add(dok)
@@ -397,4 +398,170 @@ def simpan_dokumen(
     return {
         "message":      f"{len(saved_ids)} dokumen berhasil disimpan dan sedang diproses.",
         "dokumen_ids":  saved_ids,
+    }
+
+
+# ── GET /beranda/dokumen/{dokumen_id} — detail dokumen + hasil deteksi ─
+@router.get("/dokumen/{dokumen_id}")
+def get_dokumen_detail(
+    dokumen_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    """
+    Ambil detail satu dokumen beserta semua hasil deteksi kolomnya.
+    Mengembalikan:
+      - dokumen: info lengkap dokumen (path_pdf disertakan)
+      - hasil_deteksi: list per kolom (nama, koordinat, status)
+    """
+
+    # Ambil dokumen milik user
+    dok = db.query(models.Dokumen).filter(
+        models.Dokumen.id      == dokumen_id,
+        models.Dokumen.id_user == user_id,
+    ).first()
+
+    if not dok:
+        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan.")
+
+    # Ambil nama template
+    template = db.query(models.Template).filter(
+        models.Template.id == dok.id_template
+    ).first()
+    nama_template = template.nama_template if template else None
+
+    # Path PDF: path_dokumen menyimpan folder image.
+    # Bangun path PDF: storage/dokumen/pdf/<nama_file>.pdf
+    # nama_file diperoleh dari nama folder image (sama dengan clean_filename pdf)
+    image_folder = dok.path_dokumen or ""
+    folder_name  = os.path.basename(image_folder.rstrip("/\\"))
+
+    # Cari file PDF yang namanya mengandung folder_name
+    # (karena clean_filename mengganti spasi dan karakter khusus)
+    pdf_path = ""
+    pdf_dir  = "storage/dokumen/pdf"
+    if folder_name and os.path.isdir(pdf_dir):
+        for fname in os.listdir(pdf_dir):
+            name_no_ext = clean_filename(os.path.splitext(fname)[0])
+            if name_no_ext == folder_name:
+                pdf_path = f"{pdf_dir}/{fname}".replace("\\", "/")
+                break
+
+    # Ambil hasil deteksi bergabung dengan kolom_template
+    hasil_rows = (
+        db.query(models.HasilDeteksi, models.KolomTemplate)
+        .join(
+            models.KolomTemplate,
+            models.HasilDeteksi.id_kolom_template == models.KolomTemplate.id
+        )
+        .filter(models.HasilDeteksi.id_dokumen == dokumen_id)
+        .order_by(models.KolomTemplate.halaman, models.KolomTemplate.id)
+        .all()
+    )
+
+    hasil_list = [
+        {
+            "id_kolom":   kolom.id,
+            "nama_kolom": kolom.nama_kolom,
+            "halaman":    kolom.halaman,
+            "x1":         kolom.x1,
+            "y1":         kolom.y1,
+            "x2":         kolom.x2,
+            "y2":         kolom.y2,
+            "status":     hasil.status,
+        }
+        for hasil, kolom in hasil_rows
+    ]
+
+    # Jika status Memuat tapi belum ada hasil_deteksi, buat placeholder
+    # dari kolom_template agar tabel tidak kosong
+    if not hasil_list and dok.status == "Memuat" and dok.id_template:
+        koloms = db.query(models.KolomTemplate).filter(
+            models.KolomTemplate.id_template == dok.id_template
+        ).order_by(models.KolomTemplate.halaman, models.KolomTemplate.id).all()
+
+        hasil_list = [
+            {
+                "id_kolom":   k.id,
+                "nama_kolom": k.nama_kolom,
+                "halaman":    k.halaman,
+                "x1":         k.x1,
+                "y1":         k.y1,
+                "x2":         k.x2,
+                "y2":         k.y2,
+                "status":     "Memuat",
+            }
+            for k in koloms
+        ]
+
+    return {
+        "dokumen": {
+            "id":            dok.id,
+            "nama_dokumen":  dok.nama_dokumen,
+            "nama_template": nama_template,
+            "status":        dok.status,
+            "path_pdf":      pdf_path,         # path PDF untuk preview iframe
+            "path_dokumen":  dok.path_dokumen,
+            "id_template":   dok.id_template,
+            "created_at":    dok.created_at,
+        },
+        "hasil_deteksi": hasil_list,
+    }
+
+
+# ── DELETE /beranda/dokumen/{dokumen_id} — hapus dokumen ──────────────
+@router.delete("/dokumen/{dokumen_id}")
+def delete_dokumen(
+    dokumen_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    """
+    Hapus dokumen beserta:
+    - semua hasil_deteksi terkait (DB)
+    - folder image dokumen (storage/dokumen/images/<nama>)
+    - file PDF dokumen (storage/dokumen/pdf/<nama>.pdf)
+    """
+
+    dok = db.query(models.Dokumen).filter(
+        models.Dokumen.id      == dokumen_id,
+        models.Dokumen.id_user == user_id,
+    ).first()
+
+    if not dok:
+        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan.")
+
+    deleted_files = []
+
+    # ── Hapus file di storage ──────────────────────────────────────────
+    image_folder = dok.path_dokumen or ""
+    folder_name  = os.path.basename(image_folder.rstrip("/\\"))
+
+    # Hapus folder image
+    if image_folder and os.path.isdir(image_folder):
+        shutil.rmtree(image_folder)
+        deleted_files.append(image_folder)
+
+    # Hapus file PDF (cari berdasarkan nama folder → clean_filename)
+    pdf_dir = "storage/dokumen/pdf"
+    if folder_name and os.path.isdir(pdf_dir):
+        for fname in os.listdir(pdf_dir):
+            name_no_ext = clean_filename(os.path.splitext(fname)[0])
+            if name_no_ext == folder_name:
+                pdf_full = os.path.join(pdf_dir, fname)
+                os.remove(pdf_full)
+                deleted_files.append(pdf_full)
+                break
+
+    # ── Hapus dari database ────────────────────────────────────────────
+    db.query(models.HasilDeteksi).filter(
+        models.HasilDeteksi.id_dokumen == dokumen_id
+    ).delete(synchronize_session=False)
+
+    db.delete(dok)
+    db.commit()
+
+    return {
+        "message":       "Dokumen berhasil dihapus",
+        "deleted_files": deleted_files,
     }
