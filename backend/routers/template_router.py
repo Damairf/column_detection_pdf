@@ -438,6 +438,30 @@ def add_column(
     db.refresh(kolom)
     return {"message": "Kolom berhasil disimpan", "kolom_id": kolom.id}
 
+class TambahKolomBulkRequest(BaseModel):
+    template_id: int
+    kolom: List[UpdateKolomRequest]
+
+@router.post("/tambah-kolom")
+def tambah_kolom_bulk(
+    data: TambahKolomBulkRequest,
+    db: Session = Depends(get_db)
+):
+    for k in data.kolom:
+        kolom = models.KolomTemplate(
+            id_template=data.template_id,
+            nama_kolom=k.nama_kolom,
+            halaman=k.halaman,
+            x1=k.x1, y1=k.y1,
+            x2=k.x2, y2=k.y2,
+            type=k.warna or "green",
+            resolusi_width=k.resolusi_width,
+            resolusi_height=k.resolusi_height,
+        )
+        db.add(kolom)
+
+    db.commit()
+    return {"message": "Kolom berhasil ditambahkan"}
 
 # ── PUT /template/update-kolom/{kolom_id} ────────────────────────────
 @router.put("/update-kolom/{kolom_id}")

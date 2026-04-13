@@ -62,10 +62,24 @@
             :key="kolom.kolom_id ?? index"
             class="flex items-center justify-between px-4 py-3 bg-gray-100 rounded-lg border border-gray-200"
           >
-            <button @click="hapusKolom(index, kolom.kolom_id)"
-              class="cursor-pointer p-1 text-gray-400 hover:text-red-500 transition flex-shrink-0" title="Hapus kolom">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <button
+              @click="hapusKolom(index, kolom.kolom_id)"
+              :disabled="isDeleting"
+              class="p-1 transition flex-shrink-0"
+              :class="isDeleting
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-400 hover:text-red-500 cursor-pointer'"
+              title="Hapus kolom"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
             <span class="w-3 h-3 rounded-full flex-shrink-0 ml-1" :style="{ backgroundColor: warnaHex(kolom.warna) }"></span>
@@ -132,6 +146,7 @@ const isBatal        = ref(false)
 const isSimpan       = ref(false)
 const errorNama      = ref('')
 const serverError    = ref('')
+const isDeleting = ref(false)
 
 const SS_KEY = 'template_tambah_data'
 
@@ -144,9 +159,20 @@ onMounted(() => {
     namaFile.value  = data.namaFile  || ''
     kolomList.value = data.kolomList || []
 
-    if (data.kolomBaru) {
-      kolomList.value.push(data.kolomBaru)
-      data.kolomBaru = null
+    if (data.kolomBaruList && data.kolomBaruList.length > 0) {
+      data.kolomBaruList.forEach(k => {
+        const kolomBaru = {
+          ...k,
+          kolom_id: k.kolom_id || `temp-${Date.now()}`
+        }
+
+        const exists = kolomList.value.some(item => item.kolom_id === kolomBaru.kolom_id)
+
+        if (!exists) {
+          kolomList.value.push(kolomBaru)
+        }
+      })
+
       sessionStorage.setItem(SS_KEY, JSON.stringify(data))
     }
   } catch {
@@ -194,37 +220,58 @@ async function handleKembali() {
 }
 
 function handleTambahKolom() {
-  const raw = sessionStorage.getItem(SS_KEY)
-  if (raw) {
-    try {
-      const data = JSON.parse(raw)
-      data.kolomList = kolomList.value
-      sessionStorage.setItem(SS_KEY, JSON.stringify(data))
-    } catch {}
+    const raw = sessionStorage.getItem(SS_KEY)
+    if (raw) {
+      try {
+        const data = JSON.parse(raw)
+
+        data.kolomList = kolomList.value
+
+        data.kolomBaruList = data.kolomBaruList || []
+
+        sessionStorage.setItem(SS_KEY, JSON.stringify(data))
+      } catch {}
+    }
+    router.push({ path: '/kolom/baru', query: { mode: 'tambah' } })
   }
-  router.push({ path: '/kolom/baru', query: { mode: 'tambah' } })
-}
 
 async function hapusKolom(index, kolomId) {
-  if (kolomId) {
-    try {
+  if (isDeleting.value) return
+
+  isDeleting.value = true
+
+  try {
+    const id = kolomId
+
+    if (id && !id.toString().startsWith('temp-')) {
       const token = localStorage.getItem('token')
       await axios.delete('/api/template/batal-kolom', {
         headers: { Authorization: `Bearer ${token}` },
-        data: { kolom_ids: [kolomId] }
+        data: { kolom_ids: [id] }
       })
-    } catch (err) {
-      console.warn('Gagal hapus kolom:', err?.message)
     }
-  }
-  kolomList.value.splice(index, 1)
-  const raw = sessionStorage.getItem(SS_KEY)
-  if (raw) {
-    try {
+
+    kolomList.value.splice(index, 1)
+
+    const raw = sessionStorage.getItem(SS_KEY)
+    if (raw) {
       const data = JSON.parse(raw)
+
       data.kolomList = kolomList.value
+
+      if (data.kolomBaruList) {
+        data.kolomBaruList = data.kolomBaruList.filter(
+          k => k.kolom_id !== id
+        )
+      }
+
       sessionStorage.setItem(SS_KEY, JSON.stringify(data))
-    } catch {}
+    }
+
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isDeleting.value = false // 🔥 INI WAJIB
   }
 }
 

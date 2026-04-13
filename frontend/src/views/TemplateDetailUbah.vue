@@ -242,30 +242,52 @@ async function fetchDetail() {
 onMounted(async () => {
   await fetchDetail()
 
-  // Cek jika kembali dari KolomBaru dengan kolom baru
   const raw = sessionStorage.getItem(SS_KEY)
+
   if (raw) {
     try {
       const data = JSON.parse(raw)
-      if (data.kolomBaru) {
-        newKolomList.value.push({
-          id:         data.kolomBaru.kolom_id,
-          nama_kolom: data.kolomBaru.nama_kolom,
-          halaman:    data.kolomBaru.halaman,
-          x1: data.kolomBaru.x1, y1: data.kolomBaru.y1,
-          x2: data.kolomBaru.x2, y2: data.kolomBaru.y2,
-          type: data.kolomBaru.warna,
-        })
 
-        // tampilkan juga di UI (gabungan)
-        template.value.kolom = [
-          ...snapshotKolom.value,
-          ...newKolomList.value
-        ]
-
-        data.kolomBaru = null
-        sessionStorage.setItem(SS_KEY, JSON.stringify(data))
+      // ✅ 1. ambil deletedKolomIds DULU
+      if (data.deletedKolomIds) {
+        deletedKolomIds.value = data.deletedKolomIds
       }
+
+      // ✅ 2. filter snapshot (DATA ASLI)
+      snapshotKolom.value = snapshotKolom.value.filter(
+        k => !deletedKolomIds.value.includes(k.id)
+      )
+
+      // ✅ 3. filter tampilan awal
+      template.value.kolom = template.value.kolom.filter(
+        k => !deletedKolomIds.value.includes(k.id)
+      )
+
+      // ✅ 4. handle kolom baru
+      if (data.kolomBaruList && data.kolomBaruList.length > 0) {
+        data.kolomBaruList.forEach(k => {
+          const exists = newKolomList.value.some(item => item.id === k.kolom_id)
+          if (!exists) {
+            newKolomList.value.push({
+              id: k.kolom_id,
+              nama_kolom: k.nama_kolom,
+              halaman: k.halaman,
+              x1: k.x1,
+              y1: k.y1,
+              x2: k.x2,
+              y2: k.y2,
+              type: k.warna,
+            })
+          }
+        })
+      }
+
+      // ✅ 5. gabungkan hasil akhir
+      template.value.kolom = [
+        ...snapshotKolom.value,
+        ...newKolomList.value
+      ]
+
     } catch {}
   }
 })
@@ -331,15 +353,36 @@ function hapusKolom(kolomId) {
 
 async function confirmDeleteKolom() {
   try {
-    if (!deletedKolomIds.value.includes(selectedKolomId.value)) {
-      deletedKolomIds.value.push(selectedKolomId.value)
+    const id = selectedKolomId.value
+
+    // ✅ hanya simpan ke deletedKolomIds jika dari DB (bukan temp)
+    if (id && !id.toString().startsWith('temp-')) {
+      if (!deletedKolomIds.value.includes(id)) {
+        deletedKolomIds.value.push(id)
+      }
     }
 
-    // update UI
-    template.value.kolom = template.value.kolom.filter(
-      k => k.id !== selectedKolomId.value
-    )
+    // ✅ hapus dari tampilan
+    template.value.kolom = template.value.kolom.filter(k => k.id !== id)
 
+    // ✅ hapus dari list kolom baru
+    newKolomList.value = newKolomList.value.filter(k => k.id !== id)
+
+    // ✅ update sessionStorage
+    const raw = sessionStorage.getItem(SS_KEY)
+    const data = raw ? JSON.parse(raw) : {}
+
+    // hapus dari kolomBaruList (kalau ada)
+    if (data.kolomBaruList) {
+      data.kolomBaruList = data.kolomBaruList.filter(k => k.kolom_id !== id)
+    }
+
+    // ⭐ FIX UTAMA: simpan deletedKolomIds
+    data.deletedKolomIds = deletedKolomIds.value
+
+    sessionStorage.setItem(SS_KEY, JSON.stringify(data))
+
+    // ✅ reset state modal
     showDeleteModal.value = false
     selectedKolomId.value = null
 
@@ -350,10 +393,12 @@ async function confirmDeleteKolom() {
 
 // ── Edit kolom ────────────────────────────────────────────────────────
 function handleEditKolom(kolom) {
-  // Simpan templateData dan editKolom ke sessionStorage
+  const existing     = sessionStorage.getItem(SS_KEY)
+  const existingData = existing ? JSON.parse(existing) : {}
   sessionStorage.setItem(SS_KEY, JSON.stringify({
+    ...existingData,          // ← spread data lama (termasuk kolomBaruList)
     templateId:   templateId.value,
-    templateData: template.value,   // ← berisi path_template_pdf, jml_halaman, resolusi
+    templateData: template.value,
     editKolom:    kolom,
   }))
   // Navigasi ke KolomEdit dengan mode=detail
@@ -362,10 +407,12 @@ function handleEditKolom(kolom) {
 
 // ── Tambah kolom baru ─────────────────────────────────────────────────
 function handleTambahKolom() {
-  // Simpan templateData ke sessionStorage agar KolomBaru bisa tampilkan gambar
+  const existing     = sessionStorage.getItem(SS_KEY)
+  const existingData = existing ? JSON.parse(existing) : {}
   sessionStorage.setItem(SS_KEY, JSON.stringify({
+    ...existingData,          // ← spread data lama (termasuk kolomBaruList)
     templateId:   templateId.value,
-    templateData: template.value,   // ← berisi path_template_pdf, jml_halaman, resolusi
+    templateData: template.value
   }))
   // Navigasi ke KolomBaru dengan mode=detail
   router.push(`/kolom/baru?mode=detail&id=${templateId.value}`)

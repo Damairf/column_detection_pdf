@@ -99,9 +99,9 @@
           <button @click="resetZoom" class="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded hover:bg-gray-200 transition ml-1">Reset</button>
         </div>
 
-        <div ref="canvasWrapperRef" class="flex-1 overflow-hidden relative bg-gray-100"
+        <div ref="canvasWrapperRef" tabindex="0" @mouseenter="isCanvasFocused = true" @mouseleave="isCanvasFocused = false"  @focus="isCanvasFocused = true" @blur="isCanvasFocused = false" class="flex-1 overflow-hidden relative bg-gray-100"
           :style="activeTool === 'hand' && isPanning ? 'cursor: grabbing' : activeTool === 'hand' ? 'cursor: grab' : 'cursor: crosshair'"
-          @mousedown="onMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseLeave" @wheel.prevent="onWheel">
+          @mousedown="onMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @wheel.prevent="onWheel">
           <div class="absolute origin-top-left select-none"
             :style="{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`, transformOrigin: '0 0' }">
             <div v-if="!imageSrc" class="flex items-center justify-center bg-gray-50" style="width:600px;height:800px;">
@@ -143,6 +143,7 @@ const ssKey     = computed(() => mode.value === 'detail' ? SS_DETAIL : SS_TAMBAH
 const routeKembali = computed(() =>
   mode.value === 'detail' ? `/template/detail/${detailId.value}/ubah` : '/template/tambah'
 )
+const isCanvasFocused = ref(false)
 
 const namaKolom      = ref('')
 const halamanDipilih = ref(1)
@@ -181,7 +182,25 @@ const bisaSimpan    = computed(() =>
   koordinat.value.y1 !== null && koordinat.value.x2 !== null && koordinat.value.y2 !== null
 )
 
+function handleKeydown(e) {
+  if (!isCanvasFocused.value) return
+  const key = e.key.toLowerCase()
+  if (key === 'v') {
+    activeTool.value = 'box'
+  } 
+  else if (key === 'h') {
+    activeTool.value = 'hand'
+  } 
+  else if (key === '+' || key === '=') {
+    zoomIn()
+  } 
+  else if (key === '-' || key === '_') {
+    zoomOut()
+  }
+}
+
 onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
   const raw = sessionStorage.getItem(ssKey.value)
   if (!raw) { router.replace(routeKembali.value); return }
   try {
@@ -300,7 +319,6 @@ function onMouseUp(e) {
     koordinat.value = { x1, y1, x2, y2 }; seleksi.value = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }; dragBox.value = null
   }
 }
-function onMouseLeave() { if (isPanning.value) isPanning.value = false; if (drawing.value) { drawing.value = false; dragBox.value = null } }
 
 function handleKembali() {
   if (mode.value === 'tambah') {
