@@ -196,7 +196,6 @@
             <span>{{ deleting ? 'Menghapus...' : 'Hapus' }}</span>
           </button>
         </div>
-
       </div>
     </div>
 

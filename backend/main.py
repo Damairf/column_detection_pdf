@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from routers import template_router
-from routers import detection_router
 from routers import beranda_router
 from routers import auth
 from routers import profile_router
@@ -40,13 +39,6 @@ app.include_router(
     template_router.router,
     prefix="/template",
     tags=["Template"]
-)
-
-# Router detection
-app.include_router(
-    detection_router.router,
-    prefix="/detection",
-    tags=["Detection"]
 )
 
 # Router beranda (tabel dokumen)
