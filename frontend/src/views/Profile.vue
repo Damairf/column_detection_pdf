@@ -26,7 +26,7 @@
             <p class="text-sm text-gray-500">{{ form.divisi || '-' }}</p>
           </div>
 
-          <!-- ── Mode Lihat ─────────────────────────────────────── -->
+          <!-- Mode Lihat -->
           <div v-if="!isEditing">
             <div class="space-y-3 mb-6">
               <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
@@ -84,7 +84,7 @@
             </div>
           </div>
 
-          <!-- ── Mode Edit ──────────────────────────────────────── -->
+          <!-- Mode Edit -->
           <div v-else>
             <form @submit.prevent="handleSimpan" novalidate>
 
@@ -236,9 +236,6 @@ const errors = reactive({
   password: ''
 })
 
-// Sinkronisasi mode edit dengan route
-// Jika route /profile/ubah → aktifkan mode edit
-// Jika route /profile → nonaktifkan mode edit
 watch(() => route.path, (path) => {
   if (path === '/profile/ubah') {
     isEditing.value = true
@@ -264,7 +261,6 @@ function startEdit() {
   serverError.value = ''
   successMsg.value = ''
   form.password = ''
-  // Ubah URL ke /profile/ubah
   router.push('/profile/ubah')
 }
 
@@ -279,7 +275,6 @@ function cancelEdit() {
   errors.password = ''
   serverError.value = ''
   successMsg.value = ''
-  // Kembali ke /profile
   router.replace('/profile')
 }
 
@@ -334,7 +329,6 @@ async function handleSimpan() {
 
     setTimeout(() => {
       successMsg.value = ''
-      // Kembali ke /profile setelah simpan
       router.replace('/profile')
     }, 1500)
 

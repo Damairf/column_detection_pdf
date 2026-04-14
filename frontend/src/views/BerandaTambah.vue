@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
 
-    <!-- ── Modal Upload PDF ─────────────────────────────────────────── -->
+    <!-- Modal Upload PDF -->
     <div
       v-if="showUploadModal"
       @click.self="closeUploadModal"
@@ -55,7 +55,7 @@
       </div>
     </div>
 
-    <!-- ── Konten Utama ─────────────────────────────────────────────── -->
+    <!-- Konten Utama -->
     <div class="mb-5">
       <button
         @click="handleKembali"
@@ -73,7 +73,7 @@
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
 
-      <!-- Nama Template (searchable dropdown) -->
+      <!-- Nama Template -->
       <div class="mb-6">
         <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Template</label>
         <div class="relative">
@@ -186,26 +186,24 @@ import AppLayout from '../components/AppLayout.vue'
 
 const router = useRouter()
 
-// ── State upload ──────────────────────────────────────────────────────
 const showUploadModal = ref(false)
 const isDragging      = ref(false)
 const isUploading     = ref(false)
 const uploadError     = ref('')
 const fileInputRef    = ref(null)
 
-// ── State form ────────────────────────────────────────────────────────
 const searchTemplate  = ref('')
 const showDropdown    = ref(false)
 const templateDipilih = ref('')
 const templateList    = ref([])
-// dokumenList: { namaFile, pdfPath, imageFolder, tanggal }
+
 const dokumenList     = ref([])
 const isBatal         = ref(false)
 const isSimpan        = ref(false)
 const errorTemplate   = ref('')
 const serverError     = ref('')
 
-// ── Fetch template list ───────────────────────────────────────────────
+// Fetch template list
 async function fetchTemplateList() {
   try {
     const token = localStorage.getItem('token')
@@ -243,14 +241,14 @@ function handleClickOutside(e) {
   }
 }
 
-// ── Format tanggal ────────────────────────────────────────────────────
+// Format tanggal
 function formatTanggal(iso) {
   if (!iso) return '-'
   const d = new Date(iso)
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-// ── Upload PDF ────────────────────────────────────────────────────────
+// Upload PDF
 function openUploadModal()  { uploadError.value = ''; showUploadModal.value = true }
 function closeUploadModal() { uploadError.value = ''; showUploadModal.value = false }
 function triggerFileInput() { fileInputRef.value?.click() }
@@ -292,11 +290,10 @@ async function prosesFile(file) {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
     })
 
-    // Simpan image_folder dari response backend
     dokumenList.value.push({
       namaFile:    file.name,
       pdfPath:     res.data.pdf_path,
-      imageFolder: res.data.image_folder,   // ← folder image untuk deteksi
+      imageFolder: res.data.image_folder,
       tanggal:     new Date().toISOString(),
     })
 
@@ -309,7 +306,7 @@ async function prosesFile(file) {
   }
 }
 
-// ── Hapus dokumen ─────────────────────────────────────────────────────
+// Hapus dokumen
 async function hapusDokumen(idx) {
   const dok = dokumenList.value[idx]
   if (dok.pdfPath) {
@@ -340,14 +337,14 @@ async function hapusSemuaDokumen() {
   }
 }
 
-// ── Kembali ───────────────────────────────────────────────────────────
+// Kembali
 async function handleKembali() {
   isBatal.value = true
   await hapusSemuaDokumen()
   router.replace('/beranda')
 }
 
-// ── Simpan → trigger deteksi di backend ──────────────────────────────
+// Simpan → trigger deteksi di backend
 async function handleSimpan() {
   errorTemplate.value = ''
   serverError.value   = ''
@@ -370,8 +367,6 @@ async function handleSimpan() {
       dokumen_list: dokumenList.value.map(d => ({
         nama_dokumen: d.namaFile,
         pdf_path:     d.pdfPath,
-        // image_folder tidak perlu dikirim karena backend menghitungnya
-        // dari pdf_path (sama logikanya dengan clean_filename)
       }))
     }, { headers: { Authorization: `Bearer ${token}` } })
 
@@ -385,7 +380,6 @@ async function handleSimpan() {
   }
 }
 
-// ── Lifecycle ─────────────────────────────────────────────────────────
 onMounted(() => {
   fetchTemplateList()
   document.addEventListener('click', handleClickOutside)

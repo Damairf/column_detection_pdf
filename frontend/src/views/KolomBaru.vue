@@ -139,7 +139,6 @@ const router   = useRouter()
 const route    = useRoute()
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-// mode: 'tambah' atau 'detail'
 const mode     = computed(() => route.query.mode || 'tambah')
 const detailId = computed(() => route.query.id   || '')
 
@@ -216,7 +215,6 @@ onMounted(() => {
       resolusi.value.width  = data.resolusiWidth  ?? null
       resolusi.value.height = data.resolusiHeight ?? null
     } else {
-      // Mode detail: ambil dari templateData
       const td = data.templateData
       if (!td) { router.replace(routeKembali.value); return }
       pdfPathServer.value   = td.path_template_pdf || ''
@@ -241,9 +239,6 @@ function muatGambar(halaman) {
       imageSrc.value = `${BASE_URL}/${path.replace(/^\/+/, '').replace(/\\/g, '/')}`
     }
   } else {
-    // ── FIX: bangun path image dari path_template_pdf ──────────────
-    // PDF: storage/template/pdf/namafile.pdf
-    // Image: storage/template/images/namafile/namafile_page_1.jpeg
     if (pdfPathServer.value) {
       const cleanPath = pdfPathServer.value.replace(/\\/g, '/')
       const fileName  = cleanPath.split('/').pop()

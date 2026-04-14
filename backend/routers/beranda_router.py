@@ -19,8 +19,7 @@ from services.detection_pipeline import run_detection_pipeline
 router   = APIRouter()
 security = HTTPBearer()
 
-
-# ── Helper ────────────────────────────────────────────────────────────
+# Helper
 def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> int:
@@ -31,7 +30,6 @@ def get_current_user_id(
                             detail="Token tidak valid atau sudah expired.")
     return int(payload["sub"])
 
-
 def get_unique_filename(directory: str, filename: str) -> str:
     name, ext = os.path.splitext(filename)
     counter   = 1
@@ -41,40 +39,24 @@ def get_unique_filename(directory: str, filename: str) -> str:
         counter += 1
     return new_name
 
-
 def clean_filename(name: str) -> str:
     name = name.replace(" ", "_")
     name = re.sub(r"[^\w\-]", "", name)
     return name
 
-
-# ═══════════════════════════════════════════════════════════════════════
-# SCHEMA
-# ═══════════════════════════════════════════════════════════════════════
-
 class DokumenItem(BaseModel):
     nama_dokumen: str
     pdf_path: str
-
 
 class SimpanDokumenRequest(BaseModel):
     id_template: int
     dokumen_list: List[DokumenItem]
 
-
 class BatalUploadDokumenRequest(BaseModel):
     pdf_path: str
 
-
-# ═══════════════════════════════════════════════════════════════════════
-# BACKGROUND TASK: deteksi satu dokumen
-# ═══════════════════════════════════════════════════════════════════════
-
 def _jalankan_deteksi(dokumen_id: int, db_url: str):
-    """
-    Background task: jalankan deteksi untuk satu dokumen.
-    Membuat session DB sendiri agar tidak konflik dengan request session.
-    """
+
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -83,7 +65,6 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
     db      = Session()
 
     try:
-        # Ambil dokumen
         dokumen = db.query(models.Dokumen).filter(
             models.Dokumen.id == dokumen_id
         ).first()
@@ -91,7 +72,6 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
         if not dokumen:
             return
 
-        # Ambil template
         template = db.query(models.Template).filter(
             models.Template.id == dokumen.id_template
         ).first()
@@ -101,9 +81,6 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
             db.commit()
             return
 
-        # ── Cari folder image dokumen ─────────────────────────────────
-        # path_dokumen menyimpan folder image dokumen
-        # (diisi saat upload di endpoint upload-dokumen)
         image_folder = dokumen.path_dokumen
 
         if not image_folder or not os.path.isdir(image_folder):
@@ -121,20 +98,16 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
         jml_halaman_dokumen  = len(scan_images)
         jml_halaman_template = template.jml_halaman or 1
 
-        # ── Validasi halaman ──────────────────────────────────────────
         if jml_halaman_dokumen != jml_halaman_template:
             dokumen.status = "Error"
             db.commit()
             return
 
-        # ── Tandai semua hasil_deteksi existing sebagai Memuat ───────
-        # (untuk re-run; pada run pertama tidak ada data lama)
         db.query(models.HasilDeteksi).filter(
             models.HasilDeteksi.id_dokumen == dokumen_id
         ).delete(synchronize_session=False)
         db.commit()
 
-        # ── Ambil fields dari DB ──────────────────────────────────────
         fields = get_fields_from_db(db, dokumen.id_template)
 
         if not fields:
@@ -142,15 +115,12 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
             db.commit()
             return
 
-        # ── Tentukan folder template image ────────────────────────────
-        # Template image disimpan di storage/template/images/<nama_pdf_tanpa_ext>/
         pdf_path_template = template.path_template_pdf or ""
         nama_pdf          = os.path.basename(pdf_path_template)
         nama_tanpa_ext    = os.path.splitext(nama_pdf)[0]
         template_folder   = os.path.join("storage", "template", "images", nama_tanpa_ext)
 
         if not os.path.isdir(template_folder):
-            # Fallback: cari subfolder pertama di storage/template/images
             base = os.path.join("storage", "template", "images")
             if os.path.isdir(base):
                 for sub in sorted(os.listdir(base)):
@@ -160,11 +130,9 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
                         break
 
         results = []
-        # ── LOOP PER HALAMAN ─────────────────────────────────────
         for halaman in range(1, jml_halaman_dokumen + 1):
             current_image_path = scan_images[halaman - 1]
 
-            # Filter field hanya untuk halaman ini
             fields_per_page = {
                 k: v for k, v in fields.items()
                 if v["page"] == halaman
@@ -177,12 +145,11 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
                 page_result = run_detection_pipeline(
                     dokumen_image_folder = image_folder,
                     template_id          = dokumen.id_template,
-                    fields               = fields_per_page,   # ← FIX DI SINI
+                    fields               = fields_per_page,
                     template_image_base  = template_folder,
                     working_dir          = "storage/temp"
                 )
 
-                # Simpan hasil per halaman
                 if isinstance(page_result, list):
                     for r in page_result:
                         r["page"] = halaman
@@ -196,7 +163,6 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
                 db.commit()
                 return
 
-        # ── Simpan hasil_deteksi per kolom ────────────────────────────
         ada_kosong = False
 
         for page_result in results:
@@ -204,8 +170,7 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
 
             for field_name, status_kolom in page_result["results"].items():
 
-                # Cari kolom template berdasarkan nama_kolom & id_template
-                base_name = field_name.split("__hal")[0]  # hilangkan suffix halaman jika ada
+                base_name = field_name.split("__hal")[0]
 
                 kolom = db.query(models.KolomTemplate).filter(
                     models.KolomTemplate.id_template == dokumen.id_template,
@@ -217,14 +182,13 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
                     hasil = models.HasilDeteksi(
                         id_dokumen         = dokumen_id,
                         id_kolom_template  = kolom.id,
-                        status             = status_kolom,  # "TERISI" | "KOSONG"
+                        status             = status_kolom,
                     )
                     db.add(hasil)
 
                     if status_kolom == "KOSONG":
                         ada_kosong = True
 
-        # ── Update status dokumen ─────────────────────────────────────
         dokumen.status = "Salah" if ada_kosong else "Benar"
         db.commit()
 
@@ -293,7 +257,6 @@ async def upload_dokumen(
     file: UploadFile = File(...),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Upload PDF dokumen → convert ke image → simpan folder."""
 
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="File harus berformat PDF.")
@@ -334,7 +297,7 @@ async def upload_dokumen(
         "message":         "Dokumen berhasil diunggah",
         "nama_file":       unique_filename,
         "pdf_path":        pdf_path,
-        "image_folder":    image_output_dir,   # ← folder image dikembalikan ke frontend
+        "image_folder":    image_output_dir,
         "image_paths":     image_paths,
         "jml_halaman":     len(image_paths),
         "resolusi_width":  width,
@@ -377,26 +340,18 @@ def simpan_dokumen(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """
-    Simpan dokumen ke DB dengan status Memuat,
-    lalu jalankan deteksi di background.
-    path_dokumen menyimpan folder image (bukan path pdf).
-    """
 
-    # Cek template
     template = db.query(models.Template).filter(
         models.Template.id == data.id_template
     ).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template tidak ditemukan.")
 
-    # Ambil URL database untuk background task
     from database.database import DATABASE_URL
 
     saved_ids = []
 
     for item in data.dokumen_list:
-        # Hitung folder image dari pdf_path
         nama_file  = os.path.basename(item.pdf_path)
         nama_clean = clean_filename(os.path.splitext(nama_file)[0])
         image_folder = f"storage/dokumen/images/{nama_clean}"
@@ -404,16 +359,15 @@ def simpan_dokumen(
         dok = models.Dokumen(
             id_user      = user_id,
             nama_dokumen = item.nama_dokumen,
-            status       = "Memuat",           # status awal
-            path_dokumen = image_folder,         # simpan folder image, bukan pdf
-            path_pdf     = item.pdf_path,        # simpan path pdf untuk referensi
+            status       = "Memuat",       
+            path_dokumen = image_folder,        
+            path_pdf     = item.pdf_path,       
             id_template  = data.id_template,
         )
         db.add(dok)
-        db.flush()   # dapatkan id sebelum commit
+        db.flush()  
         saved_ids.append(dok.id)
 
-        # Daftarkan background task deteksi per dokumen
         background_tasks.add_task(_jalankan_deteksi, dok.id, DATABASE_URL)
 
     db.commit()
@@ -431,14 +385,7 @@ def get_dokumen_detail(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """
-    Ambil detail satu dokumen beserta semua hasil deteksi kolomnya.
-    Mengembalikan:
-      - dokumen: info lengkap dokumen (path_pdf disertakan)
-      - hasil_deteksi: list per kolom (nama, koordinat, status)
-    """
-
-    # Ambil dokumen milik user
+    
     dok = db.query(models.Dokumen).filter(
         models.Dokumen.id      == dokumen_id,
         models.Dokumen.id_user == user_id,
@@ -447,20 +394,14 @@ def get_dokumen_detail(
     if not dok:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan.")
 
-    # Ambil nama template
     template = db.query(models.Template).filter(
         models.Template.id == dok.id_template
     ).first()
     nama_template = template.nama_template if template else None
 
-    # Path PDF: path_dokumen menyimpan folder image.
-    # Bangun path PDF: storage/dokumen/pdf/<nama_file>.pdf
-    # nama_file diperoleh dari nama folder image (sama dengan clean_filename pdf)
     image_folder = dok.path_dokumen or ""
     folder_name  = os.path.basename(image_folder.rstrip("/\\"))
 
-    # Cari file PDF yang namanya mengandung folder_name
-    # (karena clean_filename mengganti spasi dan karakter khusus)
     pdf_path = ""
     pdf_dir  = "storage/dokumen/pdf"
     if folder_name and os.path.isdir(pdf_dir):
@@ -470,7 +411,6 @@ def get_dokumen_detail(
                 pdf_path = f"{pdf_dir}/{fname}".replace("\\", "/")
                 break
 
-    # Ambil hasil deteksi bergabung dengan kolom_template
     hasil_rows = (
         db.query(models.HasilDeteksi, models.KolomTemplate)
         .join(
@@ -496,8 +436,6 @@ def get_dokumen_detail(
         for hasil, kolom in hasil_rows
     ]
 
-    # Jika status Memuat tapi belum ada hasil_deteksi, buat placeholder
-    # dari kolom_template agar tabel tidak kosong
     if not hasil_list and dok.status == "Memuat" and dok.id_template:
         koloms = db.query(models.KolomTemplate).filter(
             models.KolomTemplate.id_template == dok.id_template
@@ -523,7 +461,7 @@ def get_dokumen_detail(
             "nama_dokumen":  dok.nama_dokumen,
             "nama_template": nama_template,
             "status":        dok.status,
-            "path_pdf":      pdf_path,         # path PDF untuk preview iframe
+            "path_pdf":      pdf_path,
             "path_dokumen":  dok.path_dokumen,
             "id_template":   dok.id_template,
             "created_at":    dok.created_at,
@@ -539,12 +477,6 @@ def delete_dokumen(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """
-    Hapus dokumen beserta:
-    - semua hasil_deteksi terkait (DB)
-    - folder image dokumen (storage/dokumen/images/<nama>)
-    - file PDF dokumen (storage/dokumen/pdf/<nama>.pdf)
-    """
 
     dok = db.query(models.Dokumen).filter(
         models.Dokumen.id      == dokumen_id,
@@ -556,16 +488,13 @@ def delete_dokumen(
 
     deleted_files = []
 
-    # ── Hapus file di storage ──────────────────────────────────────────
     image_folder = dok.path_dokumen or ""
     folder_name  = os.path.basename(image_folder.rstrip("/\\"))
 
-    # Hapus folder image
     if image_folder and os.path.isdir(image_folder):
         shutil.rmtree(image_folder)
         deleted_files.append(image_folder)
 
-    # Hapus file PDF (cari berdasarkan nama folder → clean_filename)
     pdf_dir = "storage/dokumen/pdf"
     if folder_name and os.path.isdir(pdf_dir):
         for fname in os.listdir(pdf_dir):
@@ -576,7 +505,6 @@ def delete_dokumen(
                 deleted_files.append(pdf_full)
                 break
 
-    # ── Hapus dari database ────────────────────────────────────────────
     db.query(models.HasilDeteksi).filter(
         models.HasilDeteksi.id_dokumen == dokumen_id
     ).delete(synchronize_session=False)

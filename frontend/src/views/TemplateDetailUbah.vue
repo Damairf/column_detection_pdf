@@ -54,6 +54,12 @@
               <p v-if="errorNama" class="text-red-500 text-xs mt-1">{{ errorNama }}</p>
             </div>
             <div class="mb-5">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Pembuat</label>
+              <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
+                {{ template.username || '—' }}
+              </div>
+            </div>
+            <div class="mb-5">
               <label class="block text-sm font-semibold text-gray-700 mb-2">Halaman</label>
               <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">{{ template.jml_halaman ?? '—' }}</div>
             </div>
@@ -93,7 +99,7 @@
             <div v-for="kolom in template.kolom" :key="kolom.id"
               class="flex items-center justify-between px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-lg">
 
-              <!-- Hapus langsung (konfirmasi di sini) -->
+              <!-- Hapus langsung -->
               <button @click="hapusKolom(kolom.id)"
                 class="cursor-pointer p-1 text-gray-400 hover:text-red-500 transition flex-shrink-0" title="Hapus kolom">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -248,22 +254,18 @@ onMounted(async () => {
     try {
       const data = JSON.parse(raw)
 
-      // ✅ 1. ambil deletedKolomIds DULU
       if (data.deletedKolomIds) {
         deletedKolomIds.value = data.deletedKolomIds
       }
 
-      // ✅ 2. filter snapshot (DATA ASLI)
       snapshotKolom.value = snapshotKolom.value.filter(
         k => !deletedKolomIds.value.includes(k.id)
       )
 
-      // ✅ 3. filter tampilan awal
       template.value.kolom = template.value.kolom.filter(
         k => !deletedKolomIds.value.includes(k.id)
       )
 
-      // ✅ 4. handle kolom baru
       if (data.kolomBaruList && data.kolomBaruList.length > 0) {
         data.kolomBaruList.forEach(k => {
           const exists = newKolomList.value.some(item => item.id === k.kolom_id)
@@ -282,7 +284,6 @@ onMounted(async () => {
         })
       }
 
-      // ✅ 5. gabungkan hasil akhir
       template.value.kolom = [
         ...snapshotKolom.value,
         ...newKolomList.value
@@ -292,7 +293,7 @@ onMounted(async () => {
   }
 })
 
-// ── Batal ─────────────────────────────────────────────────────────────
+// Batal
 function handleBatal() {
   template.value.kolom = JSON.parse(JSON.stringify(snapshotKolom.value))
 
@@ -303,7 +304,7 @@ function handleBatal() {
   router.replace(`/template/detail/${templateId.value}`)
 }
 
-// ── Konfirmasi ────────────────────────────────────────────────────────
+// Konfirmasi
 async function handleKonfirmasi() {
   errorNama.value  = ''
   serverError.value = ''
@@ -345,7 +346,7 @@ async function handleKonfirmasi() {
   }
 }
 
-// ── Hapus kolom langsung dari DB ──────────────────────────────────────
+// Hapus kolom langsung dari DB
 function hapusKolom(kolomId) {
   selectedKolomId.value = kolomId
   showDeleteModal.value = true
@@ -355,34 +356,27 @@ async function confirmDeleteKolom() {
   try {
     const id = selectedKolomId.value
 
-    // ✅ hanya simpan ke deletedKolomIds jika dari DB (bukan temp)
     if (id && !id.toString().startsWith('temp-')) {
       if (!deletedKolomIds.value.includes(id)) {
         deletedKolomIds.value.push(id)
       }
     }
 
-    // ✅ hapus dari tampilan
     template.value.kolom = template.value.kolom.filter(k => k.id !== id)
 
-    // ✅ hapus dari list kolom baru
     newKolomList.value = newKolomList.value.filter(k => k.id !== id)
 
-    // ✅ update sessionStorage
     const raw = sessionStorage.getItem(SS_KEY)
     const data = raw ? JSON.parse(raw) : {}
 
-    // hapus dari kolomBaruList (kalau ada)
     if (data.kolomBaruList) {
       data.kolomBaruList = data.kolomBaruList.filter(k => k.kolom_id !== id)
     }
 
-    // ⭐ FIX UTAMA: simpan deletedKolomIds
     data.deletedKolomIds = deletedKolomIds.value
 
     sessionStorage.setItem(SS_KEY, JSON.stringify(data))
 
-    // ✅ reset state modal
     showDeleteModal.value = false
     selectedKolomId.value = null
 
@@ -391,30 +385,28 @@ async function confirmDeleteKolom() {
   }
 }
 
-// ── Edit kolom ────────────────────────────────────────────────────────
+// Edit kolom
 function handleEditKolom(kolom) {
   const existing     = sessionStorage.getItem(SS_KEY)
   const existingData = existing ? JSON.parse(existing) : {}
   sessionStorage.setItem(SS_KEY, JSON.stringify({
-    ...existingData,          // ← spread data lama (termasuk kolomBaruList)
+    ...existingData,
     templateId:   templateId.value,
     templateData: template.value,
     editKolom:    kolom,
   }))
-  // Navigasi ke KolomEdit dengan mode=detail
   router.push(`/kolom/edit?mode=detail&id=${templateId.value}`)
 }
 
-// ── Tambah kolom baru ─────────────────────────────────────────────────
+// Tambah kolom baru
 function handleTambahKolom() {
   const existing     = sessionStorage.getItem(SS_KEY)
   const existingData = existing ? JSON.parse(existing) : {}
   sessionStorage.setItem(SS_KEY, JSON.stringify({
-    ...existingData,          // ← spread data lama (termasuk kolomBaruList)
+    ...existingData,
     templateId:   templateId.value,
     templateData: template.value
   }))
-  // Navigasi ke KolomBaru dengan mode=detail
   router.push(`/kolom/baru?mode=detail&id=${templateId.value}`)
 }
 </script>

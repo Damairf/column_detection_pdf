@@ -44,7 +44,7 @@
         <!-- Baris Atas: Info + Preview PDF -->
         <div class="flex gap-0 border-b border-gray-200">
 
-          <!-- Panel Info (kiri) -->
+          <!-- Panel Info -->
           <div class="w-96 flex-shrink-0 p-7 border-r border-gray-200">
 
             <!-- Nama Dokumen -->
@@ -99,7 +99,7 @@
             </div>
           </div>
 
-          <!-- Panel Preview PDF (kanan) -->
+          <!-- Panel Preview PDF -->
           <div class="flex-1 bg-gray-100 flex flex-col" style="min-height: 420px;">
             <iframe
               v-if="pdfUrl"
@@ -187,7 +187,7 @@
       </div>
     </div>
 
-    <!-- ── Modal Konfirmasi Hapus ────────────────────────────────────── -->
+    <!-- Modal Konfirmasi Hapus -->
     <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div class="bg-white rounded-2xl w-full max-w-md p-6 text-center shadow-lg">
 
@@ -242,7 +242,6 @@ const route  = useRoute()
 const dokumenId = computed(() => route.params.id)
 const BASE_URL  = import.meta.env.VITE_API_BASE_URL || ''
 
-// ── State ─────────────────────────────────────────────────────────────
 const detail       = ref({})
 const hasilDeteksi = ref([])
 const loading      = ref(false)
@@ -250,7 +249,6 @@ const errorMsg     = ref('')
 const showDeleteModal = ref(false)
 const deleting     = ref(false)
 
-// ── Computed: URL PDF dari path_pdf di tabel dokumen ──────────────────
 const pdfUrl = computed(() => {
   const path = detail.value.path_pdf
   if (!path) return ''
@@ -263,14 +261,14 @@ const namaFile = computed(() => {
   return path.replace(/\\/g, '/').split('/').pop()
 })
 
-// ── Format tanggal ────────────────────────────────────────────────────
+// Format tanggal
 function formatTanggal(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-// ── Badge status dokumen ──────────────────────────────────────────────
+// Badge status dokumen
 function badgeClass(status) {
   switch (status) {
     case 'Benar':   return 'bg-green-100 text-green-700'
@@ -285,7 +283,7 @@ function labelStatus(status) {
   return map[status] ?? status ?? '—'
 }
 
-// ── Badge status kolom (hasil_deteksi) ────────────────────────────────
+// Status kolom (hasil_deteksi)
 function badgeKolom(status) {
   switch (status) {
     case 'TERISI':  return 'bg-blue-100 text-blue-600'
@@ -295,7 +293,7 @@ function badgeKolom(status) {
   }
 }
 
-// ── Fetch detail dokumen ──────────────────────────────────────────────
+// Fetch detail dokumen
 async function fetchDetail(silent = false) {
   if (!silent) loading.value = true
   errorMsg.value = ''
@@ -317,7 +315,6 @@ async function fetchDetail(silent = false) {
   }
 }
 
-// ── Auto-polling selama Memuat ───────────────────────────────────────
 let pollingTimer = null
 
 function startPollingIfNeeded() {
@@ -332,7 +329,7 @@ function startPollingIfNeeded() {
   }
 }
 
-// ── Hapus dokumen ─────────────────────────────────────────────────────
+// Hapus dokumen
 async function handleDelete() {
   deleting.value = true
   try {
@@ -349,7 +346,6 @@ async function handleDelete() {
   }
 }
 
-// ── Lifecycle ─────────────────────────────────────────────────────────
 onMounted(async () => {
   await fetchDetail()
   startPollingIfNeeded()

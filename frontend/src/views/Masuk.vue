@@ -29,7 +29,7 @@
         <!-- Form -->
         <form @submit.prevent="handleMasuk" novalidate>
 
-          <!-- username -->
+          <!-- Username -->
           <div class="mb-3">
             <label class="block text-white font-semibold mb-0.5 text-sm">Username</label>
             <input
@@ -132,7 +132,7 @@ function validate() {
   errors.password = ''
 
   if (!form.username) {
-    errors.username = 'username wajib diisi.'
+    errors.username = 'Username wajib diisi.'
     valid = false
   }
 

@@ -11,9 +11,7 @@ from database import models
 from services.detection_pipeline import run_detection_pipeline
 from services.template_service import get_fields_from_db
 
-
 router = APIRouter()
-
 
 @router.post("/detect")
 async def detect_document(
@@ -26,11 +24,9 @@ async def detect_document(
 
     pdf_path = f"storage/upload/{file.filename}"
 
-    # simpan pdf
     with open(pdf_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # cek template
     template = db.query(models.Template).filter(
         models.Template.id == template_id
     ).first()
@@ -51,7 +47,6 @@ async def detect_document(
     
     fields = get_fields_from_db(db, template_id)
 
-    # simpan dokumen ke database
     dokumen = models.Dokumen(
         id_user=1,
         nama_dokumen=file.filename,
@@ -64,14 +59,12 @@ async def detect_document(
     db.commit()
     db.refresh(dokumen)
 
-    # jalankan pipeline
     results = run_detection_pipeline(
         pdf_path=pdf_path,
         template_images=template_images,
         fields=fields
     )
 
-    # simpan hasil deteksi
     for page_result in results:
 
         field_results = page_result["results"]

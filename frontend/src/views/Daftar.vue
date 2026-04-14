@@ -57,7 +57,7 @@
             <p v-if="errors.divisi" class="text-red-700 text-xs mt-1">{{ errors.divisi }}</p>
           </div>
 
-          <!-- username -->
+          <!-- Username -->
           <div class="mb-3">
             <label class="block text-white font-semibold mb-0.5 text-sm">Username</label>
             <input
@@ -182,7 +182,7 @@ function validate() {
   }
 
   if (!form.username) {
-    errors.username = 'username wajib diisi.'
+    errors.username = 'Username wajib diisi.'
     valid = false
   }
 

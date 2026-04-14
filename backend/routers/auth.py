@@ -11,9 +11,7 @@ router = APIRouter()
 
 @router.post("/daftar", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def daftar(user_data: UserDaftar, db: Session = Depends(get_db)):
-    """Endpoint pendaftaran user baru"""
 
-    # Cek apakah username sudah terdaftar
     existing_user = db.query(User).filter(User.username == user_data.username).first()
     if existing_user:
         raise HTTPException(
@@ -21,7 +19,6 @@ def daftar(user_data: UserDaftar, db: Session = Depends(get_db)):
             detail="Username sudah terdaftar. Gunakan username lain."
         )
 
-    # Hash password menggunakan bcrypt sebelum disimpan ke database
     hashed_pw = hash_password(user_data.password)
 
     new_user = User(
@@ -40,9 +37,7 @@ def daftar(user_data: UserDaftar, db: Session = Depends(get_db)):
 
 @router.post("/masuk", response_model=TokenResponse)
 def masuk(user_data: UserMasuk, db: Session = Depends(get_db)):
-    """Endpoint login user"""
 
-    # Cari user berdasarkan username
     user = db.query(User).filter(User.username == user_data.username).first()
     if not user:
         raise HTTPException(
@@ -50,14 +45,12 @@ def masuk(user_data: UserMasuk, db: Session = Depends(get_db)):
             detail="Username atau password salah."
         )
 
-    # Verifikasi password dengan hash yang tersimpan
     if not verify_password(user_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Username atau password salah."
         )
 
-    # Buat JWT access token
     access_token = create_access_token(data={"sub": str(user.id), "username": user.username})
 
     return TokenResponse(

@@ -79,13 +79,11 @@ const user = computed(() => {
   catch { return {} }
 })
 
-// ── Breadcrumb ────────────────────────────────────────────────────────
 const pageTitle = computed(() => {
   const p    = route.path
   const mode = route.query.mode || ''
   const q    = mode === 'detail' ? 'Template / Detail / Ubah' : 'Template / Tambah'
 
-  // Route statis
   const map = {
     '/beranda':          'Beranda',
     '/beranda/tambah':   'Beranda / Tambah',
@@ -96,22 +94,17 @@ const pageTitle = computed(() => {
   }
   if (map[p]) return map[p]
 
-  // Route kolom tunggal — pakai query param mode untuk breadcrumb
   if (p === '/kolom/baru') return `${q} / Kolom Baru`
   if (p === '/kolom/edit') return `${q} / Edit Kolom`
 
-  // Route detail beranda dinamis
   if (/^\/beranda\/detail\/\d+$/.test(p)) return 'Beranda / Detail'
 
-  // Route detail template dinamis
   if (/^\/template\/detail\/\d+$/.test(p))       return 'Template / Detail'
   if (/^\/template\/detail\/\d+\/ubah$/.test(p)) return 'Template / Detail / Ubah'
 
   return p.replace(/^\//, '')
 })
 
-// ── isActive: aktif jika exact atau sub-route ─────────────────────────
-// /kolom/baru dan /kolom/edit juga dianggap sub-route /template
 function isActive(basePath) {
   if (basePath === '/template') {
     return route.path === '/template'

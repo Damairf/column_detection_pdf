@@ -3,30 +3,6 @@ from database import models
 
 
 def get_fields_from_db(db: Session, template_id: int) -> dict:
-    """
-    Ambil semua kolom template dari database dan susun menjadi dict yang
-    siap dipakai oleh detection_pipeline.
-
-    Return format:
-    {
-      "Nama Kolom": {
-          "page": 1,
-          "type": "text",
-          "boxes": [
-              {
-                  "x1": 100, "y1": 50, "x2": 400, "y2": 120,
-                  "template_width": 2540, "template_height": 3898
-              }
-          ]
-      },
-      ...
-    }
-
-    Catatan: satu nama_kolom bisa muncul di beberapa halaman berbeda
-    (beda record di DB). Jika ada nama yang sama di halaman yang sama,
-    box-nya digabung ke dalam satu list boxes.
-    """
-
     koloms = (
         db.query(models.KolomTemplate)
         .filter(models.KolomTemplate.id_template == template_id)
@@ -37,11 +13,8 @@ def get_fields_from_db(db: Session, template_id: int) -> dict:
     fields: dict = {}
 
     for k in koloms:
-        # Gunakan gabungan nama + halaman sebagai key unik agar kolom
-        # dengan nama sama di halaman berbeda tidak saling menimpa.
         key = k.nama_kolom
 
-        # Jika nama kolom sudah ada tapi halaman berbeda, buat key unik
         if key in fields and fields[key]["page"] != k.halaman:
             key = f"{k.nama_kolom}__hal{k.halaman}"
 

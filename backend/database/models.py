@@ -44,7 +44,7 @@ class KolomTemplate(Base):
     __tablename__ = "kolom_template"
 
     id = Column(Integer, primary_key=True)
-    id_template = Column(Integer, ForeignKey("template.id"), nullable=True)  # NULL saat masih sementara
+    id_template = Column(Integer, ForeignKey("template.id"), nullable=True)
     nama_kolom = Column(String)
     halaman = Column(Integer)
     x1 = Column(Integer)

@@ -218,7 +218,6 @@ onMounted(() => {
     } else {
       const td = data.templateData
       if (!td || !data.editKolom) { router.replace(routeKembali.value); return }
-      // ── FIX: simpan path PDF dari templateData ──────────────────
       pdfPathServer.value   = td.path_template_pdf || ''
       totalHalaman.value    = td.jml_halaman       || 1
       resolusi.value.width  = td.resolusi_width    ?? null
@@ -226,11 +225,9 @@ onMounted(() => {
       editKolomData = data.editKolom
     }
 
-    // Isi form dengan data kolom yang diedit
     namaKolom.value      = editKolomData.nama_kolom || ''
     halamanDipilih.value = editKolomData.halaman    || 1
     warnaAktif.value     = editKolomData.type || editKolomData.warna || 'green'
-    // ── FIX: isi koordinat dari data kolom yang ada ──────────────
     koordinat.value = {
       x1: editKolomData.x1 ?? null,
       y1: editKolomData.y1 ?? null,
@@ -255,7 +252,6 @@ function muatGambar(halaman) {
       imageSrc.value = `${BASE_URL}/${path.replace(/^\/+/, '').replace(/\\/g, '/')}`
     }
   } else {
-    // ── FIX: bangun path image dari path_template_pdf ──────────────
     if (pdfPathServer.value) {
       const cleanPath = pdfPathServer.value.replace(/\\/g, '/')
       const fileName  = cleanPath.split('/').pop()
@@ -264,7 +260,6 @@ function muatGambar(halaman) {
     }
   }
 
-  // ── FIX: tampilkan seleksi dari koordinat yang sudah ada ────────
   if (koordinat.value.x1 !== null) {
     seleksi.value = {
       x: koordinat.value.x1,
@@ -279,7 +274,6 @@ function muatGambar(halaman) {
 }
 
 watch(halamanDipilih, (val) => {
-  // Reset koordinat hanya jika pindah ke halaman BERBEDA dari halaman kolom asli
   if (editKolomData && editKolomData.halaman !== val) {
     seleksi.value   = null
     koordinat.value = { x1: null, y1: null, x2: null, y2: null }

@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
 
-    <!-- ── Toolbar: Cari + Urut + Tambah ──────────────────────────── -->
+    <!-- Cari + Urut + Tambah -->
     <div class="flex items-center justify-between mb-4">
 
       <div class="relative">
@@ -59,7 +59,7 @@
       </div>
     </div>
 
-    <!-- ── Kartu Tabel ─────────────────────────────────────────────── -->
+    <!-- Kartu Tabel -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
       <div class="overflow-x-auto">
@@ -107,7 +107,7 @@
                   class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
                   :class="badgeClass(row.status)"
                 >
-                  <!-- Spinner untuk Memuat -->
+                  <!-- Spinner Memuat -->
                   <svg v-if="row.status === 'Memuat'" class="animate-spin h-3 w-3"
                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-30" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -179,7 +179,6 @@ import AppLayout from '../components/AppLayout.vue'
 
 const router = useRouter()
 
-// ── State ─────────────────────────────────────────────────────────────
 const allData          = ref([])
 const loading          = ref(false)
 const errorMsg         = ref('')
@@ -198,7 +197,7 @@ const sortOptions = [
   { label: 'Tanggal (Menaik)',  value: 'tgl-asc'  },
 ]
 
-// ── Fetch data ────────────────────────────────────────────────────────
+// Fetch data
 async function fetchData(silent = false) {
   if (!silent) loading.value = true
   errorMsg.value = ''
@@ -219,14 +218,13 @@ async function fetchData(silent = false) {
   }
 }
 
-// ── Auto-polling: refresh setiap 5 detik selama ada status Memuat ────
 let pollingTimer = null
 
 function startPollingIfNeeded() {
   const hasMemuat = allData.value.some(r => r.status === 'Memuat')
   if (hasMemuat && !pollingTimer) {
     pollingTimer = setInterval(async () => {
-      await fetchData(true)  // silent refresh
+      await fetchData(true)
       const stillMemuat = allData.value.some(r => r.status === 'Memuat')
       if (!stillMemuat) {
         clearInterval(pollingTimer)
@@ -244,7 +242,6 @@ function formatTanggal(iso) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-// ── Badge status ──────────────────────────────────────────────────────
 // Status dari backend: "Benar" | "Salah" | "Memuat" | "Error"
 function badgeClass(status) {
   switch (status) {
@@ -266,7 +263,6 @@ function labelStatus(status) {
   }
 }
 
-// ── Computed ──────────────────────────────────────────────────────────
 const filteredData = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   if (!q) return allData.value
@@ -298,7 +294,7 @@ const paginatedData = computed(() => {
   return sortedData.value.slice(start, start + itemsPerPage)
 })
 
-// ── Sort ──────────────────────────────────────────────────────────────
+// Sort
 let hideTimeout = null
 function handleMouseEnter() {
   if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null }
@@ -313,7 +309,7 @@ function selectSort(value) {
   currentPage.value = 1
 }
 
-// ── Pagination ────────────────────────────────────────────────────────
+// Pagination
 function goToPage(page) { currentPage.value = Math.max(1, Math.min(page, totalPages.value)) }
 function onPageInputChange(e) {
   const val = parseInt(e.target.value)
@@ -323,10 +319,8 @@ function onPageInputChange(e) {
 
 function lihatDetail(id) { router.push(`/beranda/detail/${id}`) }
 
-// ── Lifecycle ─────────────────────────────────────────────────────────
 watch(searchQuery, () => { currentPage.value = 1 })
 
-// Mulai polling setelah data di-load jika ada Memuat
 watch(allData, () => startPollingIfNeeded(), { deep: false })
 
 onMounted(async () => {

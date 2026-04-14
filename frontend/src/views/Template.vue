@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
 
-    <!-- ── Overlay Upload PDF (muncul saat klik Tambah) ─────────────── -->
+    <!-- Overlay Upload PDF -->
     <div
       v-if="showUploadModal"
       class="fixed inset-0 z-50 flex items-center justify-center"
@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <!-- ── Toolbar: Cari + Urut + Tambah ──────────────────────────── -->
+    <!-- Cari + Urut + Tambah -->
     <div class="flex items-center justify-between mb-4">
 
       <div class="relative">
@@ -99,7 +99,7 @@
       </div>
     </div>
 
-    <!-- ── Kartu Tabel ─────────────────────────────────────────────── -->
+    <!-- Kartu Tabel -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -107,6 +107,7 @@
             <tr class="border-b border-gray-200">
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">ID</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama Template</th>
+              <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-36">Pembuat</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">Halaman</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">Kolom</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Tanggal</th>
@@ -115,7 +116,7 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">
+              <td colspan="7" class="px-5 py-10 text-center text-gray-400 text-sm">
                 <div class="flex items-center justify-center gap-2">
                   <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -126,11 +127,12 @@
               </td>
             </tr>
             <tr v-else-if="errorMsg">
-              <td colspan="6" class="px-5 py-10 text-center text-red-400 text-sm">{{ errorMsg }}</td>
+              <td colspan="7" class="px-5 py-10 text-center text-red-400 text-sm">{{ errorMsg }}</td>
             </tr>
             <tr v-else v-for="row in paginatedData" :key="row.id" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
               <td class="px-5 py-3 text-center text-gray-700 font-mono text-xs">{{ formatId(row.id) }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_template }}</td>
+              <td class="px-5 py-3 text-center text-gray-500">{{ row.username || '—' }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.jml_halaman }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.jml_kolom }}</td>
               <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(row.created_at) }}</td>
@@ -139,7 +141,7 @@
               </td>
             </tr>
             <tr v-if="!loading && !errorMsg && paginatedData.length === 0">
-              <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada data ditemukan.</td>
+              <td colspan="7" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada data ditemukan.</td>
             </tr>
           </tbody>
         </table>
@@ -236,6 +238,7 @@ const filteredData = computed(() => {
   return allData.value.filter(row =>
     formatId(row.id).toLowerCase().includes(q) ||
     row.nama_template?.toLowerCase().includes(q) ||
+    row.username?.toLowerCase().includes(q) ||
     String(row.jml_halaman).includes(q) ||
     String(row.jml_kolom).includes(q) ||
     formatTanggal(row.created_at).includes(q)
@@ -283,7 +286,7 @@ function onPageInputChange(e) {
 }
 function lihatDetail(id) { router.push(`/template/detail/${id}`) }
 
-// ── Upload PDF ────────────────────────────────────────────────────────
+// Upload PDF
 function triggerFileInput() { fileInputRef.value?.click() }
 function handleFileInput(e) {
   const file = e.target.files[0]
@@ -311,17 +314,14 @@ async function prosesFile(file) {
     const response = await axios.post('/api/template/upload-pdf', formData, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
     })
-
-    // ── FIX: gunakan key yang sama persis dengan response backend ──
-    // Response backend mengembalikan: pdf_path, image_paths, jml_halaman,
-    //                                 resolusi_width, resolusi_height
+                                resolusi_width, resolusi_height
     sessionStorage.setItem('template_tambah_data', JSON.stringify({
-      namaFile:        response.data.nama_file,
-      pdf_path:        response.data.pdf_path,        // ← key konsisten dengan backend
+      namaFile:        file.name,
+      pdf_path:        response.data.pdf_path,
       imagePaths:      response.data.image_paths,
-      jml_halaman:     response.data.jml_halaman,     // ← key konsisten dengan backend
-      resolusi_width:  response.data.resolusi_width,  // ← key konsisten dengan backend
-      resolusi_height: response.data.resolusi_height, // ← key konsisten dengan backend
+      jml_halaman:     response.data.jml_halaman,
+      resolusi_width:  response.data.resolusi_width,
+      resolusi_height: response.data.resolusi_height,
       kolomList:       [],
       kolomBaru:       null,
     }))

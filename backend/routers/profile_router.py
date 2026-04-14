@@ -12,19 +12,17 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 router = APIRouter()
 security = HTTPBearer()
 
-
 class UpdateProfile(BaseModel):
     nama: str
     divisi: str
     username: str
-    password: Optional[str] = None  # opsional, hanya diisi jika ingin ganti password
-
+    password: Optional[str] = None
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ):
-    """Ambil user dari JWT token"""
+
     token = credentials.credentials
     payload = decode_access_token(token)
 
@@ -50,16 +48,13 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Update profile user"""
 
-    # Pastikan hanya bisa update profile sendiri
     if current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tidak diizinkan mengubah profile user lain."
         )
 
-    # Cek apakah username sudah dipakai user lain
     existing = db.query(User).filter(
         User.username == data.username,
         User.id != user_id
@@ -70,12 +65,10 @@ def update_profile(
             detail="Username sudah digunakan. Pilih username lain."
         )
 
-    # Update data
     current_user.nama = data.nama
     current_user.divisi = data.divisi
     current_user.username = data.username
 
-    # Update password hanya jika diisi
     if data.password:
         current_user.password = hash_password(data.password)
 

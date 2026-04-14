@@ -271,7 +271,7 @@ async function hapusKolom(index, kolomId) {
   } catch (err) {
     console.error(err)
   } finally {
-    isDeleting.value = false // 🔥 INI WAJIB
+    isDeleting.value = false
   }
 }
 
@@ -291,14 +291,13 @@ async function handleSimpan() {
     const raw   = sessionStorage.getItem(SS_KEY)
     const data  = raw ? JSON.parse(raw) : {}
 
-    // ── FIX: baca dengan key snake_case yang sama persis seperti
-    //         yang disimpan di Template.vue saat upload berhasil ──
+
     const resTemplate = await axios.post('/api/template/simpan', {
       nama_template:     namaTemplate.value.trim(),
-      pdf_path:          data.pdf_path        || '',  // ← key: pdf_path
-      jml_halaman:       data.jml_halaman     || 0,   // ← key: jml_halaman
-      resolusi_width:    data.resolusi_width  || 0,   // ← key: resolusi_width
-      resolusi_height:   data.resolusi_height || 0,   // ← key: resolusi_height
+      pdf_path:          data.pdf_path        || '',
+      jml_halaman:       data.jml_halaman     || 0,
+      resolusi_width:    data.resolusi_width  || 0,
+      resolusi_height:   data.resolusi_height || 0,
     }, {
       headers: { Authorization: `Bearer ${token}` }
     })

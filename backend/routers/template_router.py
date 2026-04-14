@@ -19,10 +19,7 @@ from services.auth import decode_access_token
 router = APIRouter()
 security = HTTPBearer()
 
-
-# ═══════════════════════════════════════════════════════════════════════
 # HELPER
-# ═══════════════════════════════════════════════════════════════════════
 
 def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security)
@@ -43,10 +40,6 @@ def clean_filename(name: str) -> str:
     return name
 
 def recalculate_dokumen_status(db: Session, template_id: int):
-    """
-    Update status semua dokumen berdasarkan hasil_deteksi yang tersisa.
-    TANPA deteksi ulang.
-    """
 
     dokumens = db.query(models.Dokumen).filter(
         models.Dokumen.id_template == template_id
@@ -57,7 +50,6 @@ def recalculate_dokumen_status(db: Session, template_id: int):
             models.HasilDeteksi.id_dokumen == dok.id
         ).all()
 
-        # Jika tidak ada hasil sama sekali → anggap benar (tidak ada kolom)
         if not hasil_list:
             dok.status = "Benar"
             continue
@@ -77,25 +69,19 @@ def get_unique_filename(directory, filename):
         counter += 1
     return new_filename
 
-
-# ═══════════════════════════════════════════════════════════════════════
-# SCHEMA
-# ═══════════════════════════════════════════════════════════════════════
-
 class TemplateResponse(BaseModel):
     id: int
     nama_template: Optional[str] = None
     jml_halaman: Optional[int] = None
     jml_kolom: int = 0
+    username: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
-
 class BatalUploadRequest(BaseModel):
     nama_file: str
-
 
 class KolomSementaraRequest(BaseModel):
     nama_kolom: str
@@ -108,7 +94,6 @@ class KolomSementaraRequest(BaseModel):
     resolusi_height: Optional[int] = None
     warna: Optional[str] = None
 
-
 class SimpanTemplateRequest(BaseModel):
     nama_template: str
     pdf_path: Optional[str] = None
@@ -116,19 +101,15 @@ class SimpanTemplateRequest(BaseModel):
     resolusi_width: Optional[int] = None
     resolusi_height: Optional[int] = None
 
-
 class UbahTemplateRequest(BaseModel):
     nama_template: str
-
 
 class UpdateKolomTemplateRequest(BaseModel):
     template_id: int
     kolom_ids: List[int]
 
-
 class BatalKolomRequest(BaseModel):
     kolom_ids: List[int]
-
 
 class UpdateKolomRequest(BaseModel):
     nama_kolom: str
@@ -140,11 +121,6 @@ class UpdateKolomRequest(BaseModel):
     resolusi_width: Optional[int] = None
     resolusi_height: Optional[int] = None
     warna: Optional[str] = None
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# ROUTE STATIS — harus semua di atas route dinamis /{template_id}
-# ═══════════════════════════════════════════════════════════════════════
 
 # ── POST /template/upload-pdf ─────────────────────────────────────────
 @router.post("/upload-pdf")
@@ -195,7 +171,6 @@ async def upload_pdf_only(
         "resolusi_height": height,
     }
 
-
 # ── DELETE /template/batal-upload ────────────────────────────────────
 @router.delete("/batal-upload")
 def batal_upload(
@@ -221,7 +196,6 @@ def batal_upload(
 
     return {"message": "File berhasil dihapus", "deleted": deleted}
 
-
 # ── POST /template/simpan-kolom-sementara ────────────────────────────
 @router.post("/simpan-kolom-sementara")
 def simpan_kolom_sementara(
@@ -243,7 +217,6 @@ def simpan_kolom_sementara(
     db.refresh(kolom)
     return {"message": "Kolom sementara berhasil disimpan", "kolom_id": kolom.id}
 
-
 # ── POST /template/simpan ─────────────────────────────────────────────
 @router.post("/simpan")
 def simpan_template(
@@ -264,7 +237,6 @@ def simpan_template(
     db.refresh(template)
     return {"message": "Template berhasil disimpan", "template_id": template.id}
 
-
 # ── PUT /template/update-kolom-template ──────────────────────────────
 @router.put("/update-kolom-template")
 def update_kolom_template(
@@ -281,7 +253,6 @@ def update_kolom_template(
     db.commit()
     return {"message": f"{len(data.kolom_ids)} kolom berhasil diperbarui"}
 
-
 # ── DELETE /template/batal-kolom ─────────────────────────────────────
 @router.delete("/batal-kolom")
 def batal_kolom(
@@ -289,31 +260,27 @@ def batal_kolom(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    # Ambil template_id sebelum kolom dihapus
+    
     koloms = db.query(models.KolomTemplate).filter(
         models.KolomTemplate.id.in_(data.kolom_ids)
     ).all()
 
     template_ids = list(set(k.id_template for k in koloms if k.id_template))
 
-    # ── Hapus hasil_deteksi terkait kolom ─────────────
     db.query(models.HasilDeteksi).filter(
         models.HasilDeteksi.id_kolom_template.in_(data.kolom_ids)
     ).delete(synchronize_session=False)
 
-    # ── Hapus kolom_template ─────────────────────────
     db.query(models.KolomTemplate).filter(
         models.KolomTemplate.id.in_(data.kolom_ids)
     ).delete(synchronize_session=False)
 
     db.commit()
 
-    # ── Recalculate dokumen TANPA deteksi ulang ─────
     for tid in template_ids:
         recalculate_dokumen_status(db, tid)
 
     return {"message": f"{len(data.kolom_ids)} kolom berhasil dihapus"}
-
 
 # ── GET /template/list ───────────────────────────────────────────────
 @router.get("/list", response_model=List[TemplateResponse])
@@ -321,20 +288,25 @@ def get_template_list(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
+    kolom_count = (
+        db.query(
+            models.KolomTemplate.id_template,
+            func.count(models.KolomTemplate.id).label('jml_kolom')
+        )
+        .group_by(models.KolomTemplate.id_template)
+        .subquery()
+    )
     results = (
         db.query(
             models.Template.id,
             models.Template.nama_template,
             models.Template.jml_halaman,
             models.Template.created_at,
-            (
-                select(func.count(models.KolomTemplate.id))
-                .where(models.KolomTemplate.id_template == models.Template.id)
-                .correlate(models.Template)
-                .scalar_subquery()
-            ).label("jml_kolom")
+            func.coalesce(kolom_count.c.jml_kolom, 0).label('jml_kolom'),
+            models.User.username.label('username'),
         )
-        .filter(models.Template.id_user == user_id)
+        .outerjoin(kolom_count, models.Template.id == kolom_count.c.id_template)
+        .outerjoin(models.User, models.Template.id_user == models.User.id)
         .order_by(models.Template.id.asc())
         .all()
     )
@@ -343,12 +315,12 @@ def get_template_list(
             id=row.id,
             nama_template=row.nama_template,
             jml_halaman=row.jml_halaman,
-            jml_kolom=row.jml_kolom or 0,
+            jml_kolom=row.jml_kolom,
+            username=row.username,
             created_at=row.created_at
         )
         for row in results
     ]
-
 
 # ── GET /template/ ────────────────────────────────────────────────────
 @router.get("/")
@@ -366,7 +338,6 @@ def get_all_templates(db: Session = Depends(get_db)):
         }
         for t in templates
     ]
-
 
 # ── POST /template/upload-template ───────────────────────────────────
 @router.post("/upload-template")
@@ -411,7 +382,6 @@ async def upload_template(
         "resolusi_width":  width,
         "resolusi_height": height,
     }
-
 
 # ── POST /template/add-column ─────────────────────────────────────────
 @router.post("/add-column")
@@ -487,11 +457,6 @@ def update_kolom(
     db.refresh(kolom)
     return {"message": "Kolom berhasil diperbarui", "kolom_id": kolom.id}
 
-
-# ═══════════════════════════════════════════════════════════════════════
-# ROUTE DINAMIS — selalu paling bawah
-# ═══════════════════════════════════════════════════════════════════════
-
 # ── GET /template/{template_id} ───────────────────────────────────────
 @router.get("/{template_id}")
 def get_template_detail(
@@ -499,19 +464,25 @@ def get_template_detail(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
+
     template = db.query(models.Template).filter(
         models.Template.id == template_id,
-        models.Template.id_user == user_id
     ).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template tidak ditemukan.")
 
+    pembuat = db.query(models.User).filter(
+        models.User.id == template.id_user
+    ).first()
+ 
     koloms = db.query(models.KolomTemplate).filter(
         models.KolomTemplate.id_template == template_id
     ).all()
-
+ 
     return {
         "id": template.id,
+        "id_user": template.id_user,
+        "username": pembuat.username if pembuat else None,
         "nama_template": template.nama_template,
         "jml_halaman": template.jml_halaman,
         "path_template_pdf": template.path_template_pdf,
@@ -532,7 +503,6 @@ def get_template_detail(
         ],
     }
 
-
 # ── PUT /template/{template_id} — ubah nama template ─────────────────
 @router.put("/ubah/{template_id}")
 def ubah_template(
@@ -541,7 +511,7 @@ def ubah_template(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Update nama template. Hanya pemilik yang bisa mengubah."""
+    
     template = db.query(models.Template).filter(
         models.Template.id == template_id,
         models.Template.id_user == user_id
