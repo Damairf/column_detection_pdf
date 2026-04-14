@@ -314,7 +314,6 @@ async function prosesFile(file) {
     const response = await axios.post('/api/template/upload-pdf', formData, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
     })
-                                resolusi_width, resolusi_height
     sessionStorage.setItem('template_tambah_data', JSON.stringify({
       namaFile:        file.name,
       pdf_path:        response.data.pdf_path,
