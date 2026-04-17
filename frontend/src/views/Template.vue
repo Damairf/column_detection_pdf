@@ -192,7 +192,7 @@ const searchQuery      = ref('')
 const currentPage      = ref(1)
 const itemsPerPage     = 10
 const showUrutDropdown = ref(false)
-const sortKey          = ref('')
+const sortKey          = ref('id-desc')
 
 const showUploadModal = ref(false)
 const isDragging      = ref(false)
