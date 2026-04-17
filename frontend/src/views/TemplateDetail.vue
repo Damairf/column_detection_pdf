@@ -1,5 +1,6 @@
 <template>
   <AppLayout>
+    <div class="flex flex-col min-h-full">
 
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -198,7 +199,11 @@
         </div>
       </div>
     </div>
-
+    <!-- Footer Warning -->
+    <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
+      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
+    </div>
+    </div>
   </AppLayout>
 </template>
 

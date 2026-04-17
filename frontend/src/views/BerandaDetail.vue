@@ -1,5 +1,6 @@
 <template>
   <AppLayout>
+    <div class="flex flex-col min-h-full">
 
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -137,7 +138,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
-            Error. Jumlah halaman dokumen berbeda dengan halaman template.
+            Error. Periksa apakah terdapat kesalahan dalam dokumen atau template.
           </div>
 
           <div class="overflow-hidden rounded-xl border border-gray-200">
@@ -226,7 +227,11 @@
         </div>
       </div>
     </div>
-
+    <!-- Footer Warning -->
+    <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
+      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
+    </div>
+    </div>
   </AppLayout>
 </template>
 

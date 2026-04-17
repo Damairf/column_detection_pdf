@@ -1,5 +1,6 @@
 <template>
   <AppLayout>
+    <div class="flex flex-col min-h-full">
 
     <div class="mb-5">
       <button
@@ -125,7 +126,11 @@
         </span>
         <span v-else>Simpan</span>
       </button>
-
+    </div>
+    <!-- Footer Warning -->
+    <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
+      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
+    </div>
     </div>
   </AppLayout>
 </template>

@@ -1,5 +1,6 @@
 <template>
   <AppLayout>
+    <div class="flex flex-col min-h-full">
     <div class="flex gap-5" style="height: calc(100vh - 8rem);">
 
       <!-- Panel Kiri -->
@@ -119,6 +120,11 @@
           </div>
         </div>
       </div>
+    </div>
+    <!-- Footer Warning -->
+    <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
+      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
+    </div>
     </div>
   </AppLayout>
 </template>
