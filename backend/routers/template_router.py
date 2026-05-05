@@ -513,8 +513,7 @@ def ubah_template(
 ):
     
     template = db.query(models.Template).filter(
-        models.Template.id == template_id,
-        models.Template.id_user == user_id
+        models.Template.id == template_id
     ).first()
 
     if not template:
@@ -535,8 +534,7 @@ def delete_template(
     user_id: int = Depends(get_current_user_id)
 ):
     template = db.query(models.Template).filter(
-        models.Template.id == template_id,
-        models.Template.id_user == user_id
+        models.Template.id == template_id
     ).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template tidak ditemukan.")
