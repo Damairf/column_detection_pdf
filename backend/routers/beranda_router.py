@@ -518,7 +518,7 @@ def delete_dokumen(
     db.commit()
 
     return {
-        "message":       "Dokumen berhasil dihapus",
+        "message":"Dokumen berhasil dihapus",
         "deleted_files": deleted_files,
     }
 
@@ -541,7 +541,7 @@ def download_dokumen(
         models.Dokumen.id_user == user_id,
         models.Dokumen.created_at >= sd,
         models.Dokumen.created_at <= ed
-    ).order_by(models.Dokumen.created_at.desc()).all()
+    ).order_by(models.Dokumen.id.asc()).all()
 
     wb = openpyxl.Workbook()
     ws = wb.active
