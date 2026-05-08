@@ -1,8 +1,23 @@
+# Environments
 .env
+venv/
+env/
+.venv/
 
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Storage / Uploads
 storage/template/images/
 storage/template/pdf/
 storage/temp/
 storage/dokumen/
 storage/images/
 storage/pdf/
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/

@@ -2,7 +2,7 @@
   <AppLayout>
     <div class="flex flex-col min-h-full">
 
-    <!-- Cari + Urut + Tambah -->
+    <!-- Cari + Download + Urut + Tambah -->
     <div class="flex items-center justify-between mb-4">
 
       <div class="relative">
@@ -22,6 +22,18 @@
       </div>
 
       <div class="flex items-center gap-2">
+
+        <!-- Download -->
+        <button
+          @click="showDownloadModal = true"
+          class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700
+                 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download
+        </button>
 
         <!-- Urut -->
         <div class="relative" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
@@ -174,6 +186,37 @@
       Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
     </div>
     </div>
+
+    <!-- Modal Download Data Dokumen -->
+    <div
+      v-if="showDownloadModal"
+      @click.self="closeDownloadModal"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      style="background: rgba(0,0,0,0.35);"
+    >
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-6 p-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Download Data Dokumen</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
+            <input v-model="downloadStartDate" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent" :class="{'border-red-500 focus:ring-red-400': errorStartDate}" />
+            <p v-if="errorStartDate" class="text-red-500 text-xs mt-1">Tanggal mulai harus terisi</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
+            <input v-model="downloadEndDate" :min="downloadStartDate" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent" :class="{'border-red-500 focus:ring-red-400': errorEndDate}" />
+            <p v-if="errorEndDate" class="text-red-500 text-xs mt-1">Tanggal selesai harus terisi</p>
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end gap-2">
+          <button @click="closeDownloadModal" :disabled="isDownloading" class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Batal</button>
+          <button @click="handleDownload" :disabled="isDownloading" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+            <svg v-if="isDownloading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+            {{ isDownloading ? 'Menyimpan...' : 'Simpan' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -193,6 +236,13 @@ const currentPage      = ref(1)
 const itemsPerPage     = 10
 const showUrutDropdown = ref(false)
 const sortKey          = ref('id-desc')
+
+const showDownloadModal = ref(false)
+const downloadStartDate = ref('')
+const downloadEndDate   = ref('')
+const errorStartDate    = ref(false)
+const errorEndDate      = ref(false)
+const isDownloading     = ref(false)
 
 const sortOptions = [
   { label: 'A - Z (Menurun)',   value: 'az-desc'  },
@@ -324,6 +374,70 @@ function onPageInputChange(e) {
 }
 
 function lihatDetail(id) { router.push(`/beranda/detail/${id}`) }
+
+async function handleDownload() {
+  errorStartDate.value = !downloadStartDate.value
+  errorEndDate.value   = !downloadEndDate.value
+
+  if (errorStartDate.value || errorEndDate.value) return
+
+  isDownloading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.get('/api/beranda/download-dokumen', {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { start_date: downloadStartDate.value, end_date: downloadEndDate.value },
+      responseType: 'blob'
+    })
+
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    
+    const formatTanggal = (iso) => {
+      if (!iso) return ''
+      const parts = iso.split('-')
+      if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`
+      return iso
+    }
+    const tglMulai = formatTanggal(downloadStartDate.value)
+    const tglSelesai = formatTanggal(downloadEndDate.value)
+    
+    let filename = `Dokumen_${tglMulai}_${tglSelesai}.xlsx`
+    const disposition = res.headers['content-disposition']
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^"]+)"?/)
+      if (match && match[1]) filename = match[1]
+    }
+
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    closeDownloadModal()
+  } catch (err) {
+    console.error('Gagal mendownload data:', err)
+    alert('Gagal mendownload data. Pastikan tanggal benar dan data tersedia.')
+  } finally {
+    isDownloading.value = false
+  }
+}
+
+function closeDownloadModal() {
+  showDownloadModal.value = false
+  errorStartDate.value = false
+  errorEndDate.value = false
+  downloadStartDate.value = ''
+  downloadEndDate.value = ''
+}
+
+watch(downloadStartDate, (newVal) => {
+  if (downloadEndDate.value && newVal > downloadEndDate.value) {
+    downloadEndDate.value = newVal
+  }
+})
 
 watch(searchQuery, () => { currentPage.value = 1 })
 

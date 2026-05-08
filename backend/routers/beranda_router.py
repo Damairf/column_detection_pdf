@@ -8,6 +8,11 @@ import cv2
 import os
 import re
 import shutil
+import io
+import openpyxl
+from openpyxl.styles import PatternFill, Font, Border, Side
+from fastapi.responses import StreamingResponse
+from datetime import datetime, time
 
 from database.database import get_db
 from database import models
@@ -516,3 +521,97 @@ def delete_dokumen(
         "message":       "Dokumen berhasil dihapus",
         "deleted_files": deleted_files,
     }
+
+# ── GET /beranda/download-dokumen — download dokumen (excel) ──────────
+@router.get("/download-dokumen")
+def download_dokumen(
+    start_date: str,
+    end_date: str,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    try:
+        sd = datetime.strptime(start_date, "%Y-%m-%d")
+        ed = datetime.strptime(end_date, "%Y-%m-%d")
+        ed = datetime.combine(ed, time.max)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Format tanggal tidak valid")
+
+    dokumen_list = db.query(models.Dokumen).filter(
+        models.Dokumen.id_user == user_id,
+        models.Dokumen.created_at >= sd,
+        models.Dokumen.created_at <= ed
+    ).order_by(models.Dokumen.created_at.desc()).all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Data Dokumen"
+
+    ws.column_dimensions['A'].width = 16.4
+    ws.column_dimensions['B'].width = 57.1
+    ws.column_dimensions['C'].width = 57.1
+    ws.column_dimensions['D'].width = 22.8
+    ws.column_dimensions['E'].width = 21.4
+
+    headers = ["ID", "Nama Dokumen", "Nama Template", "Tanggal", "Status"]
+    ws.append(headers)
+
+    header_fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True, size=12)
+    thin_border = Border(
+        left=Side(style='thin'), 
+        right=Side(style='thin'), 
+        top=Side(style='thin'), 
+        bottom=Side(style='thin')
+    )
+
+    for col_num, cell in enumerate(ws[1], 1):
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.border = thin_border
+
+    ws.freeze_panes = "A2"
+
+    for dok in dokumen_list:
+        nama_template = "—"
+        if dok.id_template:
+            t = db.query(models.Template).filter(models.Template.id == dok.id_template).first()
+            if t:
+                nama_template = t.nama_template
+
+        tgl = dok.created_at.strftime("%d/%m/%Y") if dok.created_at else "-"
+        row = [
+            f"D-{str(dok.id).zfill(6)}",
+            dok.nama_dokumen,
+            nama_template,
+            tgl,
+            dok.status
+        ]
+        ws.append(row)
+
+    data_font = Font(size=12)
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=5):
+        for cell in row:
+            cell.border = thin_border
+            cell.font = data_font
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Format YYYY-MM-DD ke DD-MM-YYYY
+    try:
+        sd_str = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+        ed_str = datetime.strptime(end_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+    except ValueError:
+        sd_str, ed_str = start_date, end_date
+
+    filename = f"Dokumen_{sd_str}_{ed_str}.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
