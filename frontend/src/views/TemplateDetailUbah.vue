@@ -177,7 +177,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
@@ -194,9 +194,11 @@ const errorMsg     = ref('')
 const isSimpan     = ref(false)
 const errorNama    = ref('')
 const serverError  = ref('')
+const isLoaded     = ref(false)
 
 const deletedKolomIds = ref([])
 const newKolomList = ref([])
+const editedKolomList = ref([])
 const snapshotKolom = ref([])
 const showDeleteModal = ref(false)
 const selectedKolomId = ref(null)
@@ -259,17 +261,31 @@ onMounted(async () => {
     try {
       const data = JSON.parse(raw)
 
+      if (data.namaTemplate) {
+        namaTemplate.value = data.namaTemplate
+      }
+
       if (data.deletedKolomIds) {
         deletedKolomIds.value = data.deletedKolomIds
       }
 
+      if (data.editedKolomList) {
+        editedKolomList.value = data.editedKolomList
+      }
+
       snapshotKolom.value = snapshotKolom.value.filter(
         k => !deletedKolomIds.value.includes(k.id)
-      )
+      ).map(k => {
+        const edited = editedKolomList.value.find(e => e.id === k.id)
+        return edited ? edited : k
+      })
 
       template.value.kolom = template.value.kolom.filter(
         k => !deletedKolomIds.value.includes(k.id)
-      )
+      ).map(k => {
+        const edited = editedKolomList.value.find(e => e.id === k.id)
+        return edited ? edited : k
+      })
 
       if (data.kolomBaruList && data.kolomBaruList.length > 0) {
         data.kolomBaruList.forEach(k => {
@@ -296,6 +312,7 @@ onMounted(async () => {
 
     } catch {}
   }
+  isLoaded.value = true
 })
 
 // Batal
@@ -304,10 +321,24 @@ function handleBatal() {
 
   deletedKolomIds.value = []
   newKolomList.value = []
+  editedKolomList.value = []
 
   sessionStorage.removeItem(SS_KEY)
   router.replace(`/template/detail/${templateId.value}`)
 }
+
+watch(namaTemplate, (val) => {
+  if (!isLoaded.value) return
+  let data = {}
+  const raw = sessionStorage.getItem(SS_KEY)
+  if (raw) {
+    try {
+      data = JSON.parse(raw)
+    } catch {}
+  }
+  data.namaTemplate = val
+  sessionStorage.setItem(SS_KEY, JSON.stringify(data))
+})
 
 // Konfirmasi
 async function handleKonfirmasi() {
@@ -331,6 +362,23 @@ async function handleKonfirmasi() {
         headers: { Authorization: `Bearer ${token}` },
         data: { kolom_ids: deletedKolomIds.value }
       })
+    }
+
+    if (editedKolomList.value.length > 0) {
+      for (const k of editedKolomList.value) {
+        if (k.id && k.id.toString().startsWith('temp-')) continue;
+
+        await axios.put(`/api/template/update-kolom/${k.id}`, {
+          nama_kolom: k.nama_kolom,
+          halaman: k.halaman,
+          x1: k.x1, y1: k.y1, x2: k.x2, y2: k.y2,
+          resolusi_width: k.resolusi_width,
+          resolusi_height: k.resolusi_height,
+          warna: k.warna || k.type
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
     }
 
     if (newKolomList.value.length > 0) {

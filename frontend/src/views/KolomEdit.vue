@@ -332,33 +332,69 @@ async function simpanPerubahan() {
   if (!bisaSimpan.value) return
   isSimpan.value = true
   try {
-    const token   = localStorage.getItem('token')
     const kolomId = editKolomData?.kolom_id || editKolomData?.id
-    if (kolomId) {
-      await axios.put(`/api/template/update-kolom/${kolomId}`, {
-        nama_kolom: namaKolom.value.trim(), halaman: halamanDipilih.value,
-        x1: koordinat.value.x1, y1: koordinat.value.y1, x2: koordinat.value.x2, y2: koordinat.value.y2,
-        resolusi_width: resolusi.value.width, resolusi_height: resolusi.value.height, warna: warnaAktif.value,
-      }, { headers: { Authorization: `Bearer ${token}` } })
+    
+    // Siapkan data kolom yang baru
+    const updatedKolom = {
+      ...editKolomData,
+      id: kolomId, 
+      nama_kolom: namaKolom.value.trim(),
+      halaman: halamanDipilih.value,
+      x1: koordinat.value.x1,
+      y1: koordinat.value.y1,
+      x2: koordinat.value.x2,
+      y2: koordinat.value.y2,
+      resolusi_width: resolusi.value.width,
+      resolusi_height: resolusi.value.height,
+      warna: warnaAktif.value,
+      type: warnaAktif.value
     }
 
     if (mode.value === 'tambah') {
+      const token = localStorage.getItem('token')
+      if (kolomId) {
+        await axios.put(`/api/template/update-kolom/${kolomId}`, {
+          nama_kolom: namaKolom.value.trim(), 
+          halaman: halamanDipilih.value,
+          x1: koordinat.value.x1, y1: koordinat.value.y1, x2: koordinat.value.x2, y2: koordinat.value.y2,
+          resolusi_width: resolusi.value.width, resolusi_height: resolusi.value.height, warna: warnaAktif.value,
+        }, { headers: { Authorization: `Bearer ${token}` } })
+      }
+
       const raw = sessionStorage.getItem(SS_TAMBAH)
       if (raw) {
-        const d = JSON.parse(raw); const list = d.kolomList || []
-        list[editKolomIdx] = { ...editKolomData, nama_kolom: namaKolom.value.trim(), halaman: halamanDipilih.value,
-          x1: koordinat.value.x1, y1: koordinat.value.y1, x2: koordinat.value.x2, y2: koordinat.value.y2,
-          resolusi_width: resolusi.value.width, resolusi_height: resolusi.value.height, warna: warnaAktif.value }
-        d.kolomList = list; delete d.editKolomIdx
+        const d = JSON.parse(raw)
+        const list = d.kolomList || []
+        list[editKolomIdx] = updatedKolom
+        d.kolomList = list
+        delete d.editKolomIdx
         sessionStorage.setItem(SS_TAMBAH, JSON.stringify(d))
       }
     } else {
       const raw = sessionStorage.getItem(SS_DETAIL)
-      if (raw) { try { const d = JSON.parse(raw); delete d.editKolom; sessionStorage.setItem(SS_DETAIL, JSON.stringify(d)) } catch {} }
+      if (raw) {
+        try {
+          const d = JSON.parse(raw)
+          d.editedKolomList = d.editedKolomList || []
+          
+          const idx = d.editedKolomList.findIndex(k => k.id === kolomId)
+          if (idx !== -1) {
+            d.editedKolomList[idx] = updatedKolom
+          } else {
+            d.editedKolomList.push(updatedKolom)
+          }
+          
+          delete d.editKolom
+          sessionStorage.setItem(SS_DETAIL, JSON.stringify(d))
+        } catch (err) {
+          console.error('Error saving editedKolomList to SS:', err)
+        }
+      }
     }
     router.replace(routeKembali.value)
   } catch (err) {
-    alert(err.response?.data?.detail || 'Gagal menyimpan perubahan. Coba lagi.')
+    console.error(err)
+    alert('Gagal menyimpan perubahan. Coba lagi.')
   } finally {
     isSimpan.value = false
   }

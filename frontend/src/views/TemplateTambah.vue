@@ -81,7 +81,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
-        Upload
+        Upload Template
       </button>
     </div>
 
@@ -203,7 +203,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
@@ -219,6 +219,7 @@ const isSimpan       = ref(false)
 const errorNama      = ref('')
 const serverError    = ref('')
 const isDeleting = ref(false)
+const isLoaded      = ref(false)
 
 const showUploadModal = ref(false)
 const isDragging      = ref(false)
@@ -235,6 +236,7 @@ onMounted(() => {
   try {
     const data = JSON.parse(raw)
     namaFile.value  = data.namaFile  || ''
+    namaTemplate.value = data.namaTemplate || ''
     kolomList.value = data.kolomList || []
 
     if (data.kolomBaruList && data.kolomBaruList.length > 0) {
@@ -260,6 +262,8 @@ onMounted(() => {
 
   const now = new Date()
   tanggalHariIni.value = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`
+  
+  isLoaded.value = true
 })
 
 async function hapusFileDiServer() {
@@ -296,6 +300,18 @@ async function handleKembali() {
   sessionStorage.removeItem(SS_KEY)
   router.replace('/template')
 }
+
+watch(namaTemplate, (val) => {
+  if (!isLoaded.value) return
+  const raw = sessionStorage.getItem(SS_KEY)
+  if (raw) {
+    try {
+      const data = JSON.parse(raw)
+      data.namaTemplate = val
+      sessionStorage.setItem(SS_KEY, JSON.stringify(data))
+    } catch {}
+  }
+})
 
 function handleTambahKolom() {
     const raw = sessionStorage.getItem(SS_KEY)
