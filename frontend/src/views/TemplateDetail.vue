@@ -42,6 +42,17 @@
             Ubah
           </button>
 
+          <!-- Tombol Download -->
+          <button
+            @click="showDownloadModal = true"
+            class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download
+          </button>
+
           <!-- Tombol Hapus -->
           <button
             v-if="isOwner"
@@ -199,6 +210,37 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Download -->
+    <div v-if="showDownloadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="showDownloadModal = false">
+      <div class="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-lg">
+        <h2 class="text-xl font-bold text-gray-800 mb-6">Download Template</h2>
+        
+        <div class="flex flex-col gap-3">
+          <button
+            @click="downloadPDF"
+            class="w-full px-5 py-3 cursor-pointer border border-gray-300 bg-white text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
+          >
+            Dokumen Template
+          </button>
+
+          <button
+            @click="downloadCSV"
+            class="w-full px-5 py-3 cursor-pointer border border-gray-300 bg-white text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
+          >
+            Kolom Template
+          </button>
+
+          <button
+            @click="showDownloadModal = false"
+            class="w-full px-5 py-3 cursor-pointer bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-700 transition shadow-sm"
+          >
+            Batal
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer Warning -->
     <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
       Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
@@ -224,6 +266,7 @@ const errorMsg  = ref('')
 
 const deleting = ref(false)
 const showDeleteModal = ref(false)
+const showDownloadModal = ref(false)
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -280,6 +323,55 @@ async function handleDelete() {
     alert('Gagal menghapus template')
   } finally {
     deleting.value = false
+  }
+}
+
+function downloadCSV() {
+  if (!template.value || !template.value.kolom || template.value.kolom.length === 0) {
+    alert('Tidak ada kolom template untuk diunduh.')
+    return
+  }
+
+  const csvRows = template.value.kolom.map(k => {
+    return `${k.nama_kolom},${k.halaman},${k.x1},${k.y1},${k.x2},${k.y2},${k.type}`
+  })
+
+  const csvString = csvRows.join('\n')
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
+  const url = window.URL.createObjectURL(blob)
+  
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', `Kolom_${template.value.nama_template || 'Template'}.csv`)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+  
+  showDownloadModal.value = false
+}
+
+async function downloadPDF() {
+  showDownloadModal.value = false
+  if (!pdfUrl.value) return
+  try {
+    const res = await axios.get(pdfUrl.value, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', namaFile.value || 'template.pdf')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Gagal mendownload:', err)
+    const link = document.createElement('a')
+    link.href = pdfUrl.value
+    link.setAttribute('download', namaFile.value || 'template.pdf')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 }
 

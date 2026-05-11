@@ -320,7 +320,7 @@ async function prosesFile(file) {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
     })
     sessionStorage.setItem('template_tambah_data', JSON.stringify({
-      namaFile:        file.name,
+      namaFile:        response.data.nama_file,
       pdf_path:        response.data.pdf_path,
       imagePaths:      response.data.image_paths,
       jml_halaman:     response.data.jml_halaman,

@@ -16,8 +16,6 @@ app = FastAPI(
     version="1.0"
 )
 
-app.mount("/storage", StaticFiles(directory="storage"), name="storage")
-
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +24,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
 # Router auth (daftar & masuk)
 app.include_router(

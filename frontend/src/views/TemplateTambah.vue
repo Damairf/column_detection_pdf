@@ -2,7 +2,64 @@
   <AppLayout>
     <div class="flex flex-col min-h-full">
 
-    <div class="mb-5">
+    <!-- Overlay Upload CSV -->
+    <div
+      v-if="showUploadModal"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      style="background: rgba(0,0,0,0.35);"
+      @click.self="showUploadModal = false"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-6 p-8">
+
+        <!-- Drop Zone -->
+        <div
+          class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-14 px-6 mb-6 transition-colors cursor-pointer"
+          :class="isDragging
+            ? 'border-gray-500 bg-gray-100'
+            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
+          @dragover.prevent="isDragging = true"
+          @dragleave.prevent="isDragging = false"
+          @drop.prevent="handleDrop"
+          @click="triggerFileInput"
+        >
+          <div class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          <p class="text-sm text-gray-500">tarik dan unggah file CSV anda</p>
+        </div>
+
+        <input ref="fileInputRef" type="file" accept=".csv" class="hidden" @change="handleFileInput" />
+
+        <p v-if="uploadError" class="text-red-500 text-sm text-center mb-4">{{ uploadError }}</p>
+
+        <div class="flex justify-center">
+          <button
+            @click.stop="triggerFileInput"
+            :disabled="isUploading"
+            class="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm"
+            :class="isUploading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
+          >
+            <span v-if="isUploading" class="flex items-center gap-2">
+              <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Mengunggah...
+            </span>
+            <span v-else class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Unggah file
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-5 flex items-center justify-between">
       <button
         @click="handleKembali"
         :disabled="isBatal"
@@ -15,6 +72,16 @@
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
         {{ isBatal ? 'Membatalkan...' : 'Kembali' }}
+      </button>
+
+      <button
+        @click="showUploadModal = true"
+        class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        Upload
       </button>
     </div>
 
@@ -152,6 +219,12 @@ const isSimpan       = ref(false)
 const errorNama      = ref('')
 const serverError    = ref('')
 const isDeleting = ref(false)
+
+const showUploadModal = ref(false)
+const isDragging      = ref(false)
+const isUploading     = ref(false)
+const uploadError     = ref('')
+const fileInputRef    = ref(null)
 
 const SS_KEY = 'template_tambah_data'
 
@@ -345,5 +418,98 @@ function handleEditKolom(index) {
 function warnaHex(warna) {
   const map = { green: '#22c55e', red: '#ef4444', blue: '#3b82f6', yellow: '#eab308' }
   return map[warna] ?? '#6b7280'
+}
+
+// Upload PDF
+function triggerFileInput() { fileInputRef.value?.click() }
+function handleFileInput(e) {
+  const file = e.target.files[0]
+  if (file) prosesFile(file)
+  e.target.value = ''
+}
+function handleDrop(e) {
+  isDragging.value = false
+  const file = e.dataTransfer.files[0]
+  if (file) prosesFile(file)
+}
+
+async function prosesFile(file) {
+  uploadError.value = ''
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    uploadError.value = 'File harus berformat CSV.'
+    return
+  }
+  isUploading.value = true
+  
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const text = e.target.result
+      const rows = text.split(/\r?\n/).filter(row => row.trim() !== '')
+      
+      const newColumns = []
+      let isValid = true
+      
+      const token = localStorage.getItem('token')
+      const rawData = sessionStorage.getItem(SS_KEY)
+      const dataJson = rawData ? JSON.parse(rawData) : {}
+      const resWidth = dataJson.resolusi_width || 0
+      const resHeight = dataJson.resolusi_height || 0
+
+      for (const row of rows) {
+        const cols = row.split(',')
+        if (cols.length !== 7) {
+          isValid = false
+          break
+        }
+
+        const res = await axios.post('/api/template/simpan-kolom-sementara', {
+          nama_kolom: cols[0].trim(),
+          halaman: parseInt(cols[1]) || 1,
+          x1: parseInt(cols[2]) || 0,
+          y1: parseInt(cols[3]) || 0,
+          x2: parseInt(cols[4]) || 0,
+          y2: parseInt(cols[5]) || 0,
+          warna: cols[6].trim() || 'green',
+          resolusi_width: resWidth,
+          resolusi_height: resHeight
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        newColumns.push({
+          kolom_id: res.data.kolom_id,
+          nama_kolom: cols[0].trim(),
+          halaman: parseInt(cols[1]) || 1,
+          x1: parseInt(cols[2]) || 0,
+          y1: parseInt(cols[3]) || 0,
+          x2: parseInt(cols[4]) || 0,
+          y2: parseInt(cols[5]) || 0,
+          warna: cols[6].trim() || 'green'
+        })
+      }
+      
+      if (!isValid) {
+        uploadError.value = 'File csv tidak sesuai'
+        return
+      }
+      
+      kolomList.value = [...kolomList.value, ...newColumns]
+
+      dataJson.kolomList = kolomList.value
+      sessionStorage.setItem(SS_KEY, JSON.stringify(dataJson))
+      
+      showUploadModal.value = false
+    } catch (err) {
+      uploadError.value = 'Gagal memproses file CSV.'
+    } finally {
+      isUploading.value = false
+    }
+  }
+  reader.onerror = () => {
+    uploadError.value = 'Gagal membaca file.'
+    isUploading.value = false
+  }
+  reader.readAsText(file)
 }
 </script>
