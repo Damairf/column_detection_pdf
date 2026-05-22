@@ -94,12 +94,6 @@
             </span>
             <span v-else>Masuk</span>
           </button>
-
-          <!-- Link ke Daftar -->
-          <p class="text-center text-sm text-white mt-4 font-medium">
-            Belum punya akun?
-            <router-link to="/daftar" class="text-sky-300 hover:text-sky-200 font-semibold ml-1 transition">Daftar</router-link>
-          </p>
         </form>
       </div>
     </div>

@@ -5,6 +5,7 @@ from routers import template_router
 from routers import beranda_router
 from routers import auth
 from routers import profile_router
+from routers import user_router
 from database.database import engine
 from database import models
 
@@ -53,6 +54,13 @@ app.include_router(
     profile_router.router,
     prefix="/profile",
     tags=["Profile"]
+)
+
+# Router pengguna (admin only)
+app.include_router(
+    user_router.router,
+    prefix="/pengguna",
+    tags=["Pengguna"]
 )
 
 

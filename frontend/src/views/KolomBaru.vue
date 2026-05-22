@@ -76,16 +76,16 @@
       <!-- Panel Kanan: Canvas -->
       <div class="flex-1 flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="flex items-center gap-1 px-4 py-2.5 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-          <button @click="activeTool = 'box'" class="w-8 h-8 flex items-center justify-center rounded-md transition" :class="activeTool === 'box' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-200'">
+          <button @click="activeTool = 'box'" title="  v  " class="w-8 h-8 flex items-center justify-center rounded-md transition" :class="activeTool === 'box' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-200'">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>
           </button>
-          <button @click="activeTool = 'hand'" class="w-8 h-8 flex items-center justify-center rounded-md transition" :class="activeTool === 'hand' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-200'">
+          <button @click="activeTool = 'hand'" title="  h  " class="w-8 h-8 flex items-center justify-center rounded-md transition" :class="activeTool === 'hand' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-200'">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 013 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/></svg>
           </button>
-          <button @click="zoomIn" class="w-8 h-8 flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-200 transition">
+          <button @click="zoomIn" title="  +  " class="w-8 h-8 flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-200 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0zM11 8v6M8 11h6"/></svg>
           </button>
-          <button @click="zoomOut" class="w-8 h-8 flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-200 transition">
+          <button @click="zoomOut" title="  -  " class="w-8 h-8 flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-200 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0zM8 11h6"/></svg>
           </button>
           <div class="w-px h-5 bg-gray-300 mx-1"></div>

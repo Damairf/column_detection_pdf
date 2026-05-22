@@ -81,16 +81,17 @@
             <tr class="border-b border-gray-200">
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">ID</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama Dokumen</th>
+              <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Pengunggah</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama Template</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Tanggal</th>
-              <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">Status</th>
+              <th v-if="user.role === 'pusat'" class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">Status</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Detail</th>
             </tr>
           </thead>
           <tbody>
 
             <tr v-if="loading">
-              <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">
+              <td :colspan="user.role === 'pusat' ? 7 : 6" class="px-5 py-10 text-center text-gray-400 text-sm">
                 <div class="flex items-center justify-center gap-2">
                   <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -102,7 +103,7 @@
             </tr>
 
             <tr v-else-if="errorMsg">
-              <td colspan="6" class="px-5 py-10 text-center text-red-400 text-sm">{{ errorMsg }}</td>
+              <td :colspan="user.role === 'pusat' ? 7 : 6" class="px-5 py-10 text-center text-red-400 text-sm">{{ errorMsg }}</td>
             </tr>
 
             <tr
@@ -113,9 +114,10 @@
             >
               <td class="px-5 py-3 text-center text-gray-700 font-mono text-xs">{{ formatId(row.id) }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_dokumen }}</td>
+              <td class="px-5 py-3 text-center text-gray-700">{{ row.pengunggah || '—' }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_template || '—' }}</td>
               <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(row.created_at) }}</td>
-              <td class="px-5 py-3 text-center">
+              <td v-if="user.role === 'pusat'" class="px-5 py-3 text-center">
                 <span
                   class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
                   :class="badgeClass(row.status)"
@@ -140,7 +142,7 @@
             </tr>
 
             <tr v-if="!loading && !errorMsg && paginatedData.length === 0">
-              <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">
+              <td :colspan="user.role === 'pusat' ? 7 : 6" class="px-5 py-10 text-center text-gray-400 text-sm">
                 Tidak ada data ditemukan.
               </td>
             </tr>
@@ -227,6 +229,11 @@ import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
 
 const router = useRouter()
+
+const user = computed(() => {
+  try { return JSON.parse(localStorage.getItem('user')) || {} }
+  catch { return {} }
+})
 
 const allData          = ref([])
 const loading          = ref(false)
@@ -325,6 +332,7 @@ const filteredData = computed(() => {
   return allData.value.filter(row =>
     formatId(row.id).toLowerCase().includes(q) ||
     row.nama_dokumen?.toLowerCase().includes(q) ||
+    row.pengunggah?.toLowerCase().includes(q) ||
     row.nama_template?.toLowerCase().includes(q) ||
     formatTanggal(row.created_at).includes(q) ||
     row.status?.toLowerCase().includes(q)

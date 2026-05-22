@@ -26,14 +26,21 @@ security = HTTPBearer()
 
 # Helper
 def get_current_user_id(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
 ) -> int:
     token   = credentials.credentials
     payload = decode_access_token(token)
     if not payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Token tidak valid atau sudah expired.")
-    return int(payload["sub"])
+    
+    user_id = int(payload["sub"])
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Pengguna tidak ditemukan.")
+    return user_id
 
 def get_unique_filename(directory: str, filename: str) -> str:
     name, ext = os.path.splitext(filename)
@@ -222,13 +229,18 @@ def get_dokumen_list(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    results = (
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    query = (
         db.query(
             models.Dokumen.id,
             models.Dokumen.nama_dokumen,
             models.Dokumen.status,
             models.Dokumen.path_dokumen,
             models.Dokumen.id_template,
+            models.User.nama.label("pengunggah"),
             (
                 select(models.Template.nama_template)
                 .where(models.Template.id == models.Dokumen.id_template)
@@ -237,15 +249,19 @@ def get_dokumen_list(
             ).label("nama_template"),
             models.Dokumen.created_at,
         )
-        .filter(models.Dokumen.id_user == user_id)
-        .order_by(models.Dokumen.created_at.desc())
-        .all()
+        .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
     )
+
+    if user.role != "pusat":
+        query = query.filter(models.Dokumen.id_user == user_id)
+
+    results = query.order_by(models.Dokumen.created_at.desc()).all()
 
     return [
         {
             "id":            row.id,
             "nama_dokumen":  row.nama_dokumen,
+            "pengunggah":    row.pengunggah,
             "status":        row.status,
             "path_dokumen":  row.path_dokumen,
             "id_template":   row.id_template,
@@ -390,11 +406,13 @@ def get_dokumen_detail(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
     
-    dok = db.query(models.Dokumen).filter(
-        models.Dokumen.id      == dokumen_id,
-        models.Dokumen.id_user == user_id,
-    ).first()
+    query = db.query(models.Dokumen).filter(models.Dokumen.id == dokumen_id)
+    if user and user.role != "pusat":
+        query = query.filter(models.Dokumen.id_user == user_id)
+        
+    dok = query.first()
 
     if not dok:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan.")
@@ -460,10 +478,14 @@ def get_dokumen_detail(
             for k in koloms
         ]
 
+    pengunggah = db.query(models.User).filter(models.User.id == dok.id_user).first()
+    nama_pengunggah = pengunggah.nama if pengunggah else "Tidak diketahui"
+
     return {
         "dokumen": {
             "id":            dok.id,
             "nama_dokumen":  dok.nama_dokumen,
+            "pengunggah":    nama_pengunggah,
             "nama_template": nama_template,
             "status":        dok.status,
             "path_pdf":      pdf_path,
@@ -530,6 +552,10 @@ def download_dokumen(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
     try:
         sd = datetime.strptime(start_date, "%Y-%m-%d")
         ed = datetime.strptime(end_date, "%Y-%m-%d")
@@ -537,11 +563,15 @@ def download_dokumen(
     except ValueError:
         raise HTTPException(status_code=400, detail="Format tanggal tidak valid")
 
-    dokumen_list = db.query(models.Dokumen).filter(
-        models.Dokumen.id_user == user_id,
+    query = db.query(models.Dokumen).filter(
         models.Dokumen.created_at >= sd,
         models.Dokumen.created_at <= ed
-    ).order_by(models.Dokumen.id.asc()).all()
+    )
+
+    if user.role != "pusat":
+        query = query.filter(models.Dokumen.id_user == user_id)
+
+    dokumen_list = query.order_by(models.Dokumen.id.asc()).all()
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -551,9 +581,13 @@ def download_dokumen(
     ws.column_dimensions['B'].width = 57.1
     ws.column_dimensions['C'].width = 57.1
     ws.column_dimensions['D'].width = 22.8
-    ws.column_dimensions['E'].width = 21.4
 
-    headers = ["ID", "Nama Dokumen", "Nama Template", "Tanggal", "Status"]
+    if user.role == "pusat":
+        ws.column_dimensions['E'].width = 21.4
+        headers = ["ID", "Nama Dokumen", "Nama Template", "Tanggal", "Status"]
+    else:
+        headers = ["ID", "Nama Dokumen", "Nama Template", "Tanggal"]
+
     ws.append(headers)
 
     header_fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
@@ -580,17 +614,22 @@ def download_dokumen(
                 nama_template = t.nama_template
 
         tgl = dok.created_at.strftime("%d/%m/%Y") if dok.created_at else "-"
+        
         row = [
             f"D-{str(dok.id).zfill(6)}",
             dok.nama_dokumen,
             nama_template,
-            tgl,
-            dok.status
+            tgl
         ]
+
+        if user.role == "pusat":
+            row.append(dok.status)
+
         ws.append(row)
 
     data_font = Font(size=12)
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=5):
+    max_col_num = 5 if user.role == "pusat" else 4
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=max_col_num):
         for cell in row:
             cell.border = thin_border
             cell.font = data_font

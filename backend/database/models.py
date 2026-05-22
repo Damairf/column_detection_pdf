@@ -11,6 +11,7 @@ class User(Base):
     password = Column(String)
     nama = Column(String)
     divisi = Column(String)
+    role = Column(String, default="cabang")
     created_at = Column(TIMESTAMP, server_default=func.now())
 
 

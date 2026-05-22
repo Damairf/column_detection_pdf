@@ -303,7 +303,7 @@ def get_template_list(
             models.Template.jml_halaman,
             models.Template.created_at,
             func.coalesce(kolom_count.c.jml_kolom, 0).label('jml_kolom'),
-            models.User.username.label('username'),
+            models.User.nama.label('username'),
         )
         .outerjoin(kolom_count, models.Template.id == kolom_count.c.id_template)
         .outerjoin(models.User, models.Template.id_user == models.User.id)
@@ -482,7 +482,7 @@ def get_template_detail(
     return {
         "id": template.id,
         "id_user": template.id_user,
-        "username": pembuat.username if pembuat else None,
+        "username": pembuat.nama if pembuat else None,
         "nama_template": template.nama_template,
         "jml_halaman": template.jml_halaman,
         "path_template_pdf": template.path_template_pdf,

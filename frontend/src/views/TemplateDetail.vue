@@ -35,7 +35,7 @@
         <div class="flex items-center gap-2">
           <!-- Tombol Ubah -->
           <button
-            v-if="isOwner"
+            v-if="user.role === 'pusat'"
             @click="router.push(`/template/detail/${templateId}/ubah`)"
             class="cursor-pointer px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm"
           >
@@ -55,7 +55,7 @@
 
           <!-- Tombol Hapus -->
           <button
-            v-if="isOwner"
+            v-if="user.role === 'pusat'"
             @click="showDeleteModal = true"
             class="cursor-pointer px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition shadow-sm"
           >
@@ -270,21 +270,19 @@ const showDownloadModal = ref(false)
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
-// Cek apakah user yang login adalah pemilik template
-const currentUserId = computed(() => {
+// Cek apakah user yang login adalah pemilik template atau pusat
+const user = computed(() => {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    return user.id ?? null
+    return JSON.parse(localStorage.getItem('user') || '{}')
   } catch {
-    return null
+    return {}
   }
 })
 
-// isOwner: true jika id_user template sama dengan id user yang login
 const isOwner = computed(() =>
   template.value.id_user != null &&
-  currentUserId.value != null &&
-  Number(template.value.id_user) === Number(currentUserId.value)
+  user.value.id != null &&
+  Number(template.value.id_user) === Number(user.value.id)
 )
 
 const pdfUrl = computed(() => {

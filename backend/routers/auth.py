@@ -61,6 +61,7 @@ def masuk(user_data: UserMasuk, db: Session = Depends(get_db)):
             nama=user.nama,
             divisi=user.divisi,
             username=user.username,
+            role=user.role,
             created_at=user.created_at
         )
     )

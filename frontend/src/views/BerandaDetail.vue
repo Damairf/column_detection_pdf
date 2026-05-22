@@ -56,6 +56,14 @@
               </div>
             </div>
 
+            <!-- Pengunggah -->
+            <div class="mb-5">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Pengunggah</label>
+              <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
+                {{ detail.pengunggah || '—' }}
+              </div>
+            </div>
+
             <!-- Nama Template -->
             <div class="mb-5">
               <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Template</label>
@@ -73,7 +81,7 @@
             </div>
 
             <!-- Status -->
-            <div class="mb-5">
+            <div v-if="user.role === 'pusat'" class="mb-5">
               <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
               <span
                 class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold"
@@ -122,7 +130,7 @@
         </div>
 
         <!-- Tabel Hasil Deteksi Kolom -->
-        <div class="p-7">
+        <div v-if="user.role === 'pusat'" class="p-7">
 
           <!-- Loading hasil deteksi -->
           <div v-if="detail.status === 'Memuat'" class="flex items-center gap-2 text-gray-400 text-sm mb-4">
@@ -243,6 +251,11 @@ import AppLayout from '../components/AppLayout.vue'
 
 const router = useRouter()
 const route  = useRoute()
+
+const user = computed(() => {
+  try { return JSON.parse(localStorage.getItem('user')) || {} }
+  catch { return {} }
+})
 
 const dokumenId = computed(() => route.params.id)
 const BASE_URL  = import.meta.env.VITE_API_BASE_URL || ''

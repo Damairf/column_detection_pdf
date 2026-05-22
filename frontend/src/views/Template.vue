@@ -90,7 +90,7 @@
           </div>
         </div>
 
-        <button @click="showUploadModal = true"
+        <button v-if="user.role === 'pusat'" @click="showUploadModal = true"
           class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -108,7 +108,7 @@
             <tr class="border-b border-gray-200">
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">ID</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama Template</th>
-              <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-36">Pembuat</th>
+              <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Pembuat</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">Halaman</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">Kolom</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Tanggal</th>
@@ -184,6 +184,11 @@ import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
 
 const router = useRouter()
+
+const user = computed(() => {
+  try { return JSON.parse(localStorage.getItem('user')) || {} }
+  catch { return {} }
+})
 
 const allData          = ref([])
 const loading          = ref(false)
