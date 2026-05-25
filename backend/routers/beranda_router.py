@@ -505,10 +505,13 @@ def delete_dokumen(
     user_id: int = Depends(get_current_user_id)
 ):
 
-    dok = db.query(models.Dokumen).filter(
-        models.Dokumen.id      == dokumen_id,
-        models.Dokumen.id_user == user_id,
-    ).first()
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    
+    query = db.query(models.Dokumen).filter(models.Dokumen.id == dokumen_id)
+    if user and user.role != "pusat":
+        query = query.filter(models.Dokumen.id_user == user_id)
+        
+    dok = query.first()
 
     if not dok:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan.")
