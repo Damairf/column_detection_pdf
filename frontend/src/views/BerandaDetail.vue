@@ -21,7 +21,7 @@
     <!-- Konten -->
     <div v-else>
 
-      <!-- Toolbar: Kembali + Hapus -->
+      <!-- Toolbar: Kembali + Download + Hapus -->
       <div class="flex items-center justify-between mb-5">
         <button
           @click="router.replace('/beranda')"
@@ -30,13 +30,28 @@
         >
           Kembali
         </button>
-        <button
-          @click="showDeleteModal = true"
-          class="cursor-pointer px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg
-                 hover:bg-red-700 transition shadow-sm"
-        >
-          Hapus
-        </button>
+
+        <div class="flex items-center gap-2">
+          <!-- Tombol Download -->
+          <button
+            @click="downloadPDF"
+            class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download
+          </button>
+
+          <!-- Tombol Hapus -->
+          <button
+            @click="showDeleteModal = true"
+            class="cursor-pointer px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg
+                   hover:bg-red-700 transition shadow-sm"
+          >
+            Hapus
+          </button>
+        </div>
       </div>
 
       <!-- Card Utama -->
@@ -235,6 +250,9 @@
         </div>
       </div>
     </div>
+
+
+
     <!-- Footer Warning -->
     <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
       Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
@@ -264,8 +282,8 @@ const detail       = ref({})
 const hasilDeteksi = ref([])
 const loading      = ref(false)
 const errorMsg     = ref('')
-const showDeleteModal = ref(false)
-const deleting     = ref(false)
+const showDeleteModal    = ref(false)
+const deleting           = ref(false)
 
 const pdfUrl = computed(() => {
   const path = detail.value.path_pdf
@@ -344,6 +362,33 @@ function startPollingIfNeeded() {
         pollingTimer = null
       }
     }, 5000)
+  }
+}
+
+// Download PDF dokumen
+async function downloadPDF() {
+  if (!pdfUrl.value) {
+    alert('File PDF tidak tersedia.')
+    return
+  }
+  try {
+    const res = await axios.get(pdfUrl.value, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', namaFile.value || 'dokumen.pdf')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Gagal mendownload:', err)
+    const link = document.createElement('a')
+    link.href = pdfUrl.value
+    link.setAttribute('download', namaFile.value || 'dokumen.pdf')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 }
 
