@@ -3,11 +3,22 @@ from datetime import datetime
 from typing import Optional
 
 
+class CabangResponse(BaseModel):
+    id: int
+    nama_cabang: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 class UserDaftar(BaseModel):
     nama: str
     divisi: str
     username: str
     password: str
+    id_cabang: Optional[int] = None
+    cabang: Optional[str] = None
 
 
 class UserMasuk(BaseModel):
@@ -21,6 +32,8 @@ class UserResponse(BaseModel):
     divisi: str
     username: str
     role: str
+    id_cabang: Optional[int] = None
+    cabang: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
@@ -33,6 +46,8 @@ class UserCreate(BaseModel):
     username: str
     password: str
     role: str
+    id_cabang: Optional[int] = None
+    cabang: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -41,6 +56,8 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     role: Optional[str] = None
+    id_cabang: Optional[int] = None
+    cabang: Optional[str] = None
 
 
 class TokenResponse(BaseModel):

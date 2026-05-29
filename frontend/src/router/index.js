@@ -26,6 +26,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/evaluasi",
+    name: "Evaluasi",
+    component: () => import("../views/Evaluasi.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/beranda",
     name: "Beranda",
     component: Beranda,

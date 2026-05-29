@@ -1,6 +1,16 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP
+from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, Float
 from sqlalchemy.sql import func
 from database.database import Base
+from sqlalchemy.orm import relationship
+
+
+
+class Cabang(Base):
+    __tablename__ = "cabang"
+
+    id = Column(Integer, primary_key=True)
+    nama_cabang = Column(String, unique=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
 
 
 class User(Base):
@@ -11,8 +21,15 @@ class User(Base):
     password = Column(String)
     nama = Column(String)
     divisi = Column(String)
-    role = Column(String, default="cabang")
+    role = Column(String, default="user")
+    id_cabang = Column(Integer, ForeignKey("cabang.id"), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+    cabang_rel = relationship("Cabang")
+
+    @property
+    def cabang(self):
+        return self.cabang_rel.nama_cabang if self.cabang_rel else None
 
 
 class Template(Base):
@@ -65,4 +82,15 @@ class HasilDeteksi(Base):
     id_dokumen = Column(Integer, ForeignKey("dokumen.id"))
     id_kolom_template = Column(Integer, ForeignKey("kolom_template.id"))
     status = Column(String)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class Nilai(Base):
+    __tablename__ = "nilai"
+
+    id = Column(Integer, primary_key=True)
+    id_dokumen = Column(Integer, ForeignKey("dokumen.id"))
+    kriteria = Column(Float)
+    jml_benar = Column(Float)
+    skor = Column(Float)
     created_at = Column(TIMESTAMP, server_default=func.now())

@@ -59,6 +59,7 @@
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Username</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Divisi</th>
+                <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Cabang</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Tanggal</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">Role</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Aksi</th>
@@ -66,7 +67,7 @@
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">
+                <td colspan="7" class="px-5 py-10 text-center text-gray-400 text-sm">
                   <div class="flex items-center justify-center gap-2">
                     <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -77,20 +78,21 @@
                 </td>
               </tr>
               <tr v-else-if="errorMsg">
-                <td colspan="6" class="px-5 py-10 text-center text-red-500 text-sm">{{ errorMsg }}</td>
+                <td colspan="7" class="px-5 py-10 text-center text-red-500 text-sm">{{ errorMsg }}</td>
               </tr>
               <tr v-else-if="paginatedData.length === 0">
-                <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada data ditemukan.</td>
+                <td colspan="7" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada data ditemukan.</td>
               </tr>
               <tr v-else v-for="u in paginatedData" :key="u.id" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td class="px-5 py-3 text-center text-gray-700 font-medium">{{ u.nama }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ u.username }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ u.divisi }}</td>
+                <td class="px-5 py-3 text-center text-gray-700">{{ u.cabang || '-' }}</td>
                 <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(u.created_at) }}</td>
                 <td class="px-5 py-3 text-center">
                   <span
                     class="px-3 py-1 rounded-full text-xs font-semibold capitalize"
-                    :class="u.role === 'pusat' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'"
+                    :class="u.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'"
                   >
                     {{ u.role }}
                   </span>
@@ -170,8 +172,15 @@
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1">Role</label>
               <select v-model="form.role" :disabled="isEdit && form.id === currentUser.id" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                <option value="cabang">Cabang</option>
-                <option value="pusat">Pusat</option>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Cabang</label>
+              <select v-model="form.id_cabang" required class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50">
+                <option :value="null" disabled>Pilih Cabang</option>
+                <option v-for="c in listCabang" :key="c.id" :value="c.id">{{ c.nama_cabang }}</option>
               </select>
             </div>
             <div>
@@ -241,6 +250,7 @@ import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
 
 const users = ref([])
+const listCabang = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
 
@@ -274,7 +284,7 @@ const currentUser = computed(() => {
   }
 })
 
-const form = ref({ id: null, nama: '', username: '', divisi: '', role: 'cabang', password: '' })
+const form = ref({ id: null, nama: '', username: '', divisi: '', role: 'user', id_cabang: null, password: '' })
 
 async function fetchUsers() {
   loading.value = true
@@ -290,7 +300,20 @@ async function fetchUsers() {
   }
 }
 
-onMounted(() => fetchUsers())
+async function fetchCabang() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.get('/api/pengguna/cabang', { headers: { Authorization: `Bearer ${token}` } })
+    listCabang.value = res.data
+  } catch (err) {
+    console.error('Gagal memuat data cabang:', err)
+  }
+}
+
+onMounted(() => {
+  fetchUsers()
+  fetchCabang()
+})
 
 watch(searchQuery, () => { currentPage.value = 1 })
 
@@ -308,6 +331,7 @@ const filteredData = computed(() => {
     row.username?.toLowerCase().includes(q) ||
     row.divisi?.toLowerCase().includes(q) ||
     row.role?.toLowerCase().includes(q) ||
+    row.cabang?.toLowerCase().includes(q) ||
     formatTanggal(row.created_at).includes(q)
   )
 })
@@ -315,9 +339,8 @@ const filteredData = computed(() => {
 const sortedData = computed(() => {
   const data = [...filteredData.value]
   return data.sort((a, b) => {
-    // Role 'pusat' selalu di atas
-    if (a.role === 'pusat' && b.role !== 'pusat') return -1
-    if (b.role === 'pusat' && a.role !== 'pusat') return 1
+    if (a.role === 'admin' && b.role !== 'admin') return -1
+    if (b.role === 'admin' && a.role !== 'admin') return 1
 
     switch (sortKey.value) {
       case 'az-asc':   return a.nama.localeCompare(b.nama)
@@ -358,14 +381,14 @@ function onPageInputChange(e) {
 
 function openAddModal() {
   isEdit.value = false
-  form.value = { id: null, nama: '', username: '', divisi: '', role: 'cabang', password: '' }
+  form.value = { id: null, nama: '', username: '', divisi: '', role: 'user', id_cabang: null, password: '' }
   formError.value = ''
   showModal.value = true
 }
 
 function openEditModal(u) {
   isEdit.value = true
-  form.value = { id: u.id, nama: u.nama, username: u.username, divisi: u.divisi, role: u.role, password: '' }
+  form.value = { id: u.id, nama: u.nama, username: u.username, divisi: u.divisi, role: u.role, id_cabang: u.id_cabang || null, password: '' }
   formError.value = ''
   showModal.value = true
 }
@@ -384,6 +407,7 @@ async function handleSimpan() {
       username: form.value.username,
       divisi: form.value.divisi,
       role: form.value.role,
+      id_cabang: form.value.id_cabang
     }
     if (form.value.password) payload.password = form.value.password
 

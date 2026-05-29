@@ -176,6 +176,8 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
                 return
 
         ada_kosong = False
+        kriteria_count = 0
+        benar_count = 0
 
         for page_result in results:
             halaman_result = page_result.get("page", 1)
@@ -191,6 +193,10 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
                 ).first()
 
                 if kolom:
+                    kriteria_count += 1
+                    if status_kolom != "KOSONG":
+                        benar_count += 1
+                        
                     hasil = models.HasilDeteksi(
                         id_dokumen         = dokumen_id,
                         id_kolom_template  = kolom.id,
@@ -203,6 +209,22 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
 
         dokumen.status = "Salah" if ada_kosong else "Benar"
         db.commit()
+        
+        # Simpan ke tabel nilai
+        if kriteria_count > 0:
+            skor_val = round((benar_count / kriteria_count) * 100)
+        else:
+            skor_val = 0
+            
+        nilai_obj = models.Nilai(
+            id_dokumen=dokumen_id,
+            kriteria=float(kriteria_count),
+            jml_benar=float(benar_count),
+            skor=float(skor_val)
+        )
+        db.add(nilai_obj)
+        db.commit()
+
 
     except Exception as e:
         print(f"[deteksi error] dokumen_id={dokumen_id}: {e}")
@@ -242,6 +264,12 @@ def get_dokumen_list(
             models.Dokumen.id_template,
             models.User.nama.label("pengunggah"),
             (
+                select(models.Cabang.nama_cabang)
+                .where(models.Cabang.id == models.User.id_cabang)
+                .correlate(models.User)
+                .scalar_subquery()
+            ).label("cabang"),
+            (
                 select(models.Template.nama_template)
                 .where(models.Template.id == models.Dokumen.id_template)
                 .correlate(models.Dokumen)
@@ -252,7 +280,7 @@ def get_dokumen_list(
         .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
     )
 
-    if user.role != "pusat":
+    if user.role != "admin":
         query = query.filter(models.Dokumen.id_user == user_id)
 
     results = query.order_by(models.Dokumen.created_at.desc()).all()
@@ -262,6 +290,7 @@ def get_dokumen_list(
             "id":            row.id,
             "nama_dokumen":  row.nama_dokumen,
             "pengunggah":    row.pengunggah,
+            "cabang":        row.cabang,
             "status":        row.status,
             "path_dokumen":  row.path_dokumen,
             "id_template":   row.id_template,
@@ -409,7 +438,7 @@ def get_dokumen_detail(
     user = db.query(models.User).filter(models.User.id == user_id).first()
     
     query = db.query(models.Dokumen).filter(models.Dokumen.id == dokumen_id)
-    if user and user.role != "pusat":
+    if user and user.role != "admin":
         query = query.filter(models.Dokumen.id_user == user_id)
         
     dok = query.first()
@@ -508,7 +537,7 @@ def delete_dokumen(
     user = db.query(models.User).filter(models.User.id == user_id).first()
     
     query = db.query(models.Dokumen).filter(models.Dokumen.id == dokumen_id)
-    if user and user.role != "pusat":
+    if user and user.role != "admin":
         query = query.filter(models.Dokumen.id_user == user_id)
         
     dok = query.first()
@@ -571,7 +600,7 @@ def download_dokumen(
         models.Dokumen.created_at <= ed
     )
 
-    if user.role != "pusat":
+    if user.role != "admin":
         query = query.filter(models.Dokumen.id_user == user_id)
 
     dokumen_list = query.order_by(models.Dokumen.id.asc()).all()
@@ -581,24 +610,27 @@ def download_dokumen(
     ws.title = "Data Dokumen"
 
     ws.column_dimensions['A'].width = 16.4
-    ws.column_dimensions['B'].width = 57.1
-    ws.column_dimensions['C'].width = 57.1
-    ws.column_dimensions['D'].width = 22.8
+    ws.column_dimensions['B'].width = 52.1
+    ws.column_dimensions['C'].width = 50.0
+    ws.column_dimensions['D'].width = 25.0
+    ws.column_dimensions['E'].width = 45.1
+    ws.column_dimensions['F'].width = 20.1
+    ws.column_dimensions['G'].width = 20.1
 
-    if user.role == "pusat":
-        ws.column_dimensions['E'].width = 21.4
-        headers = ["ID", "Nama Dokumen", "Nama Template", "Tanggal", "Status"]
+    if user.role == "admin":
+        ws.column_dimensions['H'].width = 20.1
+        headers = ["ID", "Nama Dokumen", "Pengunggah", "Cabang", "Nama Template", "Tanggal", "Status"]
     else:
-        headers = ["ID", "Nama Dokumen", "Nama Template", "Tanggal"]
+        headers = ["ID", "Nama Dokumen", "Pengunggah", "Cabang", "Nama Template", "Tanggal"]
 
     ws.append(headers)
 
     header_fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
     header_font = Font(color="FFFFFF", bold=True, size=12)
     thin_border = Border(
-        left=Side(style='thin'), 
-        right=Side(style='thin'), 
-        top=Side(style='thin'), 
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
         bottom=Side(style='thin')
     )
 
@@ -610,6 +642,15 @@ def download_dokumen(
     ws.freeze_panes = "A2"
 
     for dok in dokumen_list:
+        pengunggah_obj = db.query(models.User).filter(models.User.id == dok.id_user).first()
+        nama_pengunggah = pengunggah_obj.nama if pengunggah_obj else "—"
+
+        nama_cabang = "—"
+        if pengunggah_obj and pengunggah_obj.id_cabang:
+            cabang_obj = db.query(models.Cabang).filter(models.Cabang.id == pengunggah_obj.id_cabang).first()
+            if cabang_obj:
+                nama_cabang = cabang_obj.nama_cabang
+
         nama_template = "—"
         if dok.id_template:
             t = db.query(models.Template).filter(models.Template.id == dok.id_template).first()
@@ -617,21 +658,23 @@ def download_dokumen(
                 nama_template = t.nama_template
 
         tgl = dok.created_at.strftime("%d/%m/%Y") if dok.created_at else "-"
-        
+
         row = [
             f"D-{str(dok.id).zfill(6)}",
             dok.nama_dokumen,
+            nama_pengunggah,
+            nama_cabang,
             nama_template,
-            tgl
+            tgl,
         ]
 
-        if user.role == "pusat":
+        if user.role == "admin":
             row.append(dok.status)
 
         ws.append(row)
 
     data_font = Font(size=12)
-    max_col_num = 5 if user.role == "pusat" else 4
+    max_col_num = 7 if user.role == "admin" else 6
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=max_col_num):
         for cell in row:
             cell.border = thin_border
@@ -641,7 +684,6 @@ def download_dokumen(
     wb.save(output)
     output.seek(0)
 
-    # Format YYYY-MM-DD ke DD-MM-YYYY
     try:
         sd_str = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d-%m-%Y")
         ed_str = datetime.strptime(end_date, "%Y-%m-%d").strftime("%d-%m-%Y")

@@ -6,6 +6,7 @@ from routers import beranda_router
 from routers import auth
 from routers import profile_router
 from routers import user_router
+from routers import evaluasi_router
 from database.database import engine
 from database import models
 
@@ -61,6 +62,13 @@ app.include_router(
     user_router.router,
     prefix="/pengguna",
     tags=["Pengguna"]
+)
+
+# Router evaluasi
+app.include_router(
+    evaluasi_router.router,
+    prefix="/evaluasi",
+    tags=["Evaluasi"]
 )
 
 

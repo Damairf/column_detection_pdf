@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from database.database import get_db
-from database.models import User, Template, Dokumen
-from database.schemas import UserResponse, UserCreate, UserUpdate
+from database.models import User, Template, Dokumen, Cabang
+from database.schemas import UserResponse, UserCreate, UserUpdate, CabangResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from services.auth import hash_password, decode_access_token
 
@@ -27,9 +27,9 @@ def get_current_admin(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Pengguna tidak ditemukan.")
                             
-    if user.role != 'pusat':
+    if user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Hanya admin pusat yang dapat mengakses.")
+                            detail="Hanya admin yang dapat mengakses.")
                             
     return user
 
@@ -37,6 +37,11 @@ def get_current_admin(
 def get_users(current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
     users = db.query(User).all()
     return users
+
+@router.get("/cabang", response_model=List[CabangResponse])
+def get_cabang(current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
+    return db.query(Cabang).all()
+
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user_data: UserCreate, current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
@@ -54,7 +59,8 @@ def create_user(user_data: UserCreate, current_admin: User = Depends(get_current
         divisi=user_data.divisi,
         username=user_data.username,
         password=hashed_pw,
-        role=user_data.role
+        role=user_data.role,
+        id_cabang=user_data.id_cabang
     )
 
     db.add(new_user)
@@ -87,6 +93,8 @@ def update_user(user_id: int, user_data: UserUpdate, current_admin: User = Depen
         user.divisi = user_data.divisi
     if user_data.role is not None:
         user.role = user_data.role
+    if user_data.id_cabang is not None:
+        user.id_cabang = user_data.id_cabang
     if user_data.password:
         user.password = hash_password(user_data.password)
 

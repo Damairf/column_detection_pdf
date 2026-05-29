@@ -4,65 +4,85 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from database.database import SessionLocal
-from database.models import User
+from database.models import User, Cabang
 from services.auth import hash_password
 
-users_data = [
-    {"username": "Nasmoco", "password": "Admin123", "role": "pusat"},
-    {"username": "Nasmoco Bantul", "password": "Bantul", "role": "cabang"},
-    {"username": "Nasmoco Brebes", "password": "Brebes", "role": "cabang"},
-    {"username": "Nasmoco Cilacap", "password": "Cilacap", "role": "cabang"},
-    {"username": "Nasmoco Demak", "password": "Demak", "role": "cabang"},
-    {"username": "Nasmoco Gombel", "password": "Gombel", "role": "cabang"},
-    {"username": "Nasmoco Janti", "password": "Janti", "role": "cabang"},
-    {"username": "Nasmoco Kaligawe", "password": "Kaligawe", "role": "cabang"},
-    {"username": "Nasmoco Karanganyar", "password": "Karanganyar", "role": "cabang"},
-    {"username": "Nasmoco Karangjati", "password": "Karangjati", "role": "cabang"},
-    {"username": "Nasmoco Klaten", "password": "Klaten", "role": "cabang"},
-    {"username": "Nasmoco Magelang", "password": "Magelang", "role": "cabang"},
-    {"username": "Nasmoco Majapahit", "password": "Majapahit", "role": "cabang"},
-    {"username": "Nasmoco Mlati", "password": "Mlati", "role": "cabang"},
-    {"username": "Nasmoco Pati", "password": "Pati", "role": "cabang"},
-    {"username": "Nasmoco Pekalongan", "password": "Pekalongan", "role": "cabang"},
-    {"username": "Nasmoco Pemuda", "password": "Pemuda", "role": "cabang"},
-    {"username": "Nasmoco Purbalingga", "password": "Purbalingga", "role": "cabang"},
-    {"username": "Nasmoco Purwokerto", "password": "Purwokerto", "role": "cabang"},
-    {"username": "Nasmoco Salatiga", "password": "Salatiga", "role": "cabang"},
-    {"username": "Nasmoco Siliwangi", "password": "Siliwangi", "role": "cabang"},
-    {"username": "Nasmoco Slamet Riyadi", "password": "Riyadi", "role": "cabang"},
-    {"username": "Nasmoco Solo Baru", "password": "Baru", "role": "cabang"},
-    {"username": "Nasmoco Tegal", "password": "Tegal", "role": "cabang"},
-    {"username": "Nasmoco Wonosobo", "password": "Wonosobo", "role": "cabang"},
+cabang_names = [
+    "New Ratna Motor",
+    "Bantul",
+    "Brebes",
+    "Cilacap",
+    "Demak",
+    "Gombel",
+    "Janti",
+    "Kaligawe",
+    "Karanganyar",
+    "Karangjati",
+    "Klaten",
+    "Magelang",
+    "Majapahit",
+    "Mlati",
+    "Pati",
+    "Pekalongan",
+    "Pemuda",
+    "Purbalingga",
+    "Purwokerto",
+    "Salatiga",
+    "Siliwangi",
+    "Slamet Riyadi",
+    "Solo Baru",
+    "Tegal",
+    "Wonosobo"
 ]
 
-def seed_users():
+def seed_data():
     db = SessionLocal()
     try:
-        added_count = 0
-        for item in users_data:
-            existing = db.query(User).filter(User.username == item["username"]).first()
-            if not existing:
-                new_user = User(
-                    username=item["username"],
-                    nama=item["username"],
-                    password=hash_password(item["password"]),
-                    role=item["role"],
-                    divisi="Finance and Accounting"
-                )
-                db.add(new_user)
-                added_count += 1
-                print(f"[+] User '{item['username']}' berhasil ditambahkan.")
+        print("--- Memulai seeding Cabang ---")
+        cabang_map = {}
+        for name in cabang_names:
+            db_cabang = db.query(Cabang).filter(Cabang.nama_cabang == name).first()
+            if not db_cabang:
+                db_cabang = Cabang(nama_cabang=name)
+                db.add(db_cabang)
+                db.commit()
+                db.refresh(db_cabang)
+                print(f"[+] Cabang '{name}' berhasil ditambahkan (ID: {db_cabang.id}).")
             else:
-                print(f"[-] User '{item['username']}' sudah ada di database (dilewati).")
+                print(f"[-] Cabang '{name}' sudah ada di database.")
+            cabang_map[name] = db_cabang.id
+
+        print("\n--- Memulai seeding User Nasmoco (Pusat) ---")
+        new_ratna_motor_id = cabang_map.get("New Ratna Motor", 1)
         
-        db.commit()
-        print(f"\nSelesai! Total {added_count} user baru ditambahkan.")
+        nasmoco_user = db.query(User).filter(User.username == "Nasmoco").first()
+        if not nasmoco_user:
+            nasmoco_user = User(
+                username="Nasmoco",
+                password=hash_password("admin123"),
+                nama="Nasmoco",
+                role="admin",
+                id_cabang=new_ratna_motor_id,
+                divisi="Finance & Accounting"
+            )
+            db.add(nasmoco_user)
+            db.commit()
+            print("[+] User 'Nasmoco' (admin) berhasil ditambahkan.")
+        else:
+            nasmoco_user.password = hash_password("admin123")
+            nasmoco_user.nama = "Nasmoco"
+            nasmoco_user.role = "admin"
+            nasmoco_user.id_cabang = new_ratna_motor_id
+            nasmoco_user.divisi = "Finance & Accounting"
+            db.commit()
+            print("[~] User 'Nasmoco' (admin) berhasil diperbarui.")
+
+        print("\nSelesai! Seeding berhasil diselesaikan.")
     except Exception as e:
-        print(f"Error saat menambahkan data: {e}")
+        print(f"Error saat seeding data: {e}")
         db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    print("Memulai penambahan data user Nasmoco...")
-    seed_users()
+    seed_data()

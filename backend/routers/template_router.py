@@ -545,22 +545,34 @@ def delete_template(
             models.HasilDeteksi.id_dokumen == dok.id
         ).delete()
 
+        # Hapus PDF dokumen
+        if dok.path_pdf and os.path.exists(dok.path_pdf):
+            os.remove(dok.path_pdf)
+
+        # Hapus folder gambar dokumen
+        if dok.path_dokumen and os.path.exists(dok.path_dokumen):
+            if os.path.isdir(dok.path_dokumen):
+                shutil.rmtree(dok.path_dokumen)
+            else:
+                os.remove(dok.path_dokumen)
+
     db.query(models.Dokumen).filter(models.Dokumen.id_template == template_id).delete()
     db.query(models.KolomTemplate).filter(
         models.KolomTemplate.id_template == template_id
     ).delete()
 
+    # Hapus PDF template dan folder gambar template
     pdf_path = template.path_template_pdf
-    
-    if pdf_path and os.path.exists(pdf_path):
-        os.remove(pdf_path)
+    if pdf_path:
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
 
-    nama_tanpa_ext = os.path.splitext(os.path.basename(pdf_path))[0]
-    nama_clean     = clean_filename(nama_tanpa_ext)
-    image_folder = f"storage/template/images/{nama_clean}"
+        nama_tanpa_ext = os.path.splitext(os.path.basename(pdf_path))[0]
+        nama_clean     = clean_filename(nama_tanpa_ext)
+        image_folder   = f"storage/template/images/{nama_clean}"
 
-    if os.path.exists(image_folder) and os.path.isdir(image_folder):
-        shutil.rmtree(image_folder)
+        if os.path.exists(image_folder) and os.path.isdir(image_folder):
+            shutil.rmtree(image_folder)
 
     db.delete(template)
     db.commit()

@@ -25,7 +25,8 @@ def daftar(user_data: UserDaftar, db: Session = Depends(get_db)):
         nama=user_data.nama,
         divisi=user_data.divisi,
         username=user_data.username,
-        password=hashed_pw
+        password=hashed_pw,
+        id_cabang=user_data.id_cabang
     )
 
     db.add(new_user)
@@ -62,6 +63,8 @@ def masuk(user_data: UserMasuk, db: Session = Depends(get_db)):
             divisi=user.divisi,
             username=user.username,
             role=user.role,
+            id_cabang=user.id_cabang,
+            cabang=user.cabang,
             created_at=user.created_at
         )
     )
