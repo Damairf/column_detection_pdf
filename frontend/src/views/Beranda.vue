@@ -154,6 +154,20 @@
 
       <!-- Pagination -->
       <div class="flex items-center justify-center gap-2 py-5 border-t border-gray-100">
+
+        <!-- Max Prev -->
+        <button
+          @click="goToPage(1)"
+          :disabled="currentPage === 1"
+          class="w-9 h-9 flex items-center justify-center rounded-lg font-bold transition"
+          :class="currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-700 cursor-pointer'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 19l-7-7 7-7M19 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <!-- Prev -->
         <button
           @click="goToPage(currentPage - 1)"
           :disabled="currentPage === 1"
@@ -164,14 +178,16 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
+
+        <!-- Input halaman -->
         <input
           type="number" :value="currentPage"
           @change="onPageInputChange" @keydown.enter="onPageInputChange"
           min="1" :max="totalPages"
-          class="w-12 h-9 text-center border border-gray-300 rounded-lg text-sm font-medium text-gray-700
-                 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent
-                 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          class="w-12 h-9 text-center border border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
+
+        <!-- Next -->
         <button
           @click="goToPage(currentPage + 1)"
           :disabled="currentPage === totalPages || totalPages === 0"
@@ -182,6 +198,19 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
           </svg>
         </button>
+
+        <!-- Max Next -->
+        <button
+          @click="goToPage(totalPages)"
+          :disabled="currentPage === totalPages || totalPages === 0"
+          class="w-9 h-9 flex items-center justify-center rounded-lg font-bold transition"
+          :class="currentPage === totalPages || totalPages === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-700 cursor-pointer'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+          </svg>
+        </button>
+
       </div>
       
     </div>
