@@ -3,8 +3,6 @@ from sqlalchemy.sql import func
 from database.database import Base
 from sqlalchemy.orm import relationship
 
-
-
 class Cabang(Base):
     __tablename__ = "cabang"
 

@@ -525,7 +525,6 @@ def get_dokumen_detail(
         "hasil_deteksi": hasil_list,
     }
 
-
 # ── DELETE /beranda/dokumen/{dokumen_id} — hapus dokumen ──────────────
 @router.delete("/dokumen/{dokumen_id}")
 def delete_dokumen(
@@ -566,6 +565,10 @@ def delete_dokumen(
 
     db.query(models.HasilDeteksi).filter(
         models.HasilDeteksi.id_dokumen == dokumen_id
+    ).delete(synchronize_session=False)
+
+    db.query(models.Nilai).filter(
+        models.Nilai.id_dokumen == dokumen_id
     ).delete(synchronize_session=False)
 
     db.delete(dok)
