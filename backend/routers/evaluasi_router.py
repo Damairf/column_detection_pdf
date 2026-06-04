@@ -15,6 +15,7 @@ router = APIRouter()
 
 @router.get("/")
 def get_evaluasi_list(
+    id_spk: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
@@ -46,10 +47,14 @@ def get_evaluasi_list(
             models.Nilai.kriteria,
             models.Nilai.jml_benar,
             models.Nilai.skor,
+            models.Dokumen.id_spk,
         )
         .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
         .outerjoin(models.Nilai, models.Dokumen.id == models.Nilai.id_dokumen)
     )
+
+    if id_spk:
+        query = query.filter(models.Dokumen.id_spk == id_spk)
 
     results = query.order_by(models.Dokumen.created_at.desc()).all()
 
@@ -64,6 +69,7 @@ def get_evaluasi_list(
             "kriteria":      row.kriteria if row.kriteria is not None else 0,
             "jml_benar":     row.jml_benar if row.jml_benar is not None else 0,
             "skor":          row.skor if row.skor is not None else 0,
+            "id_spk":        row.id_spk,
         }
         for row in results
     ]
@@ -73,6 +79,7 @@ def get_evaluasi_list(
 @router.get("/ekspor")
 def ekspor_evaluasi(
     cabang_ids: Optional[List[int]] = Query(default=None),
+    id_spk: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
@@ -103,6 +110,7 @@ def ekspor_evaluasi(
             models.Nilai.kriteria,
             models.Nilai.jml_benar,
             models.Nilai.skor,
+            models.Dokumen.id_spk,
         )
         .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
         .outerjoin(models.Nilai, models.Dokumen.id == models.Nilai.id_dokumen)
@@ -110,6 +118,9 @@ def ekspor_evaluasi(
 
     if cabang_ids:
         query = query.filter(models.User.id_cabang.in_(cabang_ids))
+        
+    if id_spk:
+        query = query.filter(models.Dokumen.id_spk == id_spk)
 
     results = query.order_by(models.Dokumen.created_at.desc()).all()
 
@@ -151,6 +162,7 @@ def ekspor_evaluasi(
         kriteria  = int(row.kriteria)  if row.kriteria  is not None else 0
         jml_benar = int(row.jml_benar) if row.jml_benar is not None else 0
         skor      = int(row.skor)      if row.skor      is not None else 0
+        skor_desimal = skor / 100
 
         ws.append([
             f"D-{str(row.id).zfill(6)}",
@@ -161,7 +173,8 @@ def ekspor_evaluasi(
             tgl,
             kriteria,
             f"{jml_benar}/{kriteria}",
-            f"{skor}%",
+            skor_desimal,
+            # f"{skor}",
         ])
 
     data_font = Font(size=12)

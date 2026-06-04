@@ -58,7 +58,7 @@ def seed_data():
         nasmoco_user = db.query(User).filter(User.username == "Nasmoco").first()
         if not nasmoco_user:
             nasmoco_user = User(
-                username="Nasmoco",
+                username="nasmoco",
                 password=hash_password("admin123"),
                 nama="Nasmoco",
                 role="admin",

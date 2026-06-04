@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from fastapi import APIRouter, BackgroundTasks, UploadFile, File, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, UploadFile, File, Depends, HTTPException, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List
@@ -61,6 +61,7 @@ class DokumenItem(BaseModel):
     pdf_path: str
 
 class SimpanDokumenRequest(BaseModel):
+    id_spk: str
     id_template: int
     dokumen_list: List[DokumenItem]
 
@@ -248,6 +249,7 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
 # ── GET /beranda/dokumen ──────────────────────────────────────────────
 @router.get("/dokumen")
 def get_dokumen_list(
+    id_spk: str = Query(default=None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
@@ -282,6 +284,9 @@ def get_dokumen_list(
 
     if user.role != "admin":
         query = query.filter(models.Dokumen.id_user == user_id)
+        
+    if id_spk:
+        query = query.filter(models.Dokumen.id_spk == id_spk)
 
     results = query.order_by(models.Dokumen.created_at.desc()).all()
 
@@ -413,6 +418,7 @@ def simpan_dokumen(
             path_dokumen = image_folder,        
             path_pdf     = item.pdf_path,       
             id_template  = data.id_template,
+            id_spk       = data.id_spk,
         )
         db.add(dok)
         db.flush()  

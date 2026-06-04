@@ -74,16 +74,16 @@
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
 
-      <!-- Nama Template -->
+      <!-- SPK -->
       <div class="mb-6">
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Template</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Nomor SPK</label>
         <div class="relative">
           <input
-            v-model="searchTemplate"
-            @focus="showDropdown = true"
-            placeholder="Cari template..."
+            v-model="searchSPK"
+            @focus="showSpkDropdown = true"
+            placeholder="Cari SPK..."
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-            :class="errorTemplate ? 'border-red-400' : ''"
+            :class="errorSPK ? 'border-red-400' : ''"
           />
           <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,7 +91,44 @@
             </svg>
           </div>
           <div
-            v-if="showDropdown"
+            v-if="showSpkDropdown"
+            class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow max-h-48 overflow-y-auto"
+          >
+            <div
+              v-for="s in filteredSPK"
+              :key="s.id"
+              @click="pilihSPK(s)"
+              class="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100"
+            >
+              {{ s.id }} - {{ s.nama_spk }}
+            </div>
+            <div v-if="filteredSPK.length === 0" class="px-4 py-2 text-sm text-gray-400">
+              Tidak ditemukan SPK
+            </div>
+          </div>
+        </div>
+        <p v-if="errorSPK" class="text-red-500 text-xs mt-1">{{ errorSPK }}</p>
+      </div>
+
+      <!-- Nama Template -->
+      <div class="mb-6">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Template</label>
+        <div class="relative">
+          <input
+            v-model="searchTemplate"
+            @focus="showDropdown = true"
+            :placeholder="spkDipilih ? 'Cari template...' : 'Pilih Nomor SPK terlebih dahulu'"
+            :disabled="!spkDipilih"
+            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-gray-200"
+            :class="errorTemplate ? 'border-red-400' : ''"
+          />
+          <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" :class="spkDipilih ? 'text-gray-400' : 'text-gray-300'" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <div
+            v-if="showDropdown && spkDipilih"
             class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow max-h-48 overflow-y-auto"
           >
             <div
@@ -209,14 +246,50 @@ const isSimpan        = ref(false)
 const errorTemplate   = ref('')
 const serverError     = ref('')
 
+const searchSPK       = ref('')
+const showSpkDropdown = ref(false)
+const spkDipilih      = ref('')
+const spkList         = ref([])
+const errorSPK        = ref('')
+
+// Fetch SPK list
+async function fetchSPKList() {
+  try {
+    const token = localStorage.getItem('token')
+    const res   = await axios.get('/api/spk/', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    spkList.value = res.data
+  } catch (err) {
+    console.warn('Gagal ambil daftar SPK:', err?.message)
+  }
+}
+
+const filteredSPK = computed(() =>
+  spkList.value
+    .filter(s => s.id.toLowerCase().includes(searchSPK.value.toLowerCase()) || s.nama_spk.toLowerCase().includes(searchSPK.value.toLowerCase()))
+    .slice(0, 6)
+)
+
+function pilihSPK(s) {
+  spkDipilih.value = s.id
+  searchSPK.value  = `${s.id} - ${s.nama_spk}`
+  showSpkDropdown.value = false
+  
+  templateList.value = s.templates || []
+  templateDipilih.value = ''
+  searchTemplate.value = ''
+}
+
 // Fetch template list
+
 async function fetchTemplateList() {
   try {
     const token = localStorage.getItem('token')
     const res   = await axios.get('/api/template/list', {
       headers: { Authorization: `Bearer ${token}` }
     })
-    templateList.value = res.data
+    // templateList.value = res.data // Fetch templates dynamically when SPK is selected
   } catch (err) {
     console.warn('Gagal ambil daftar template:', err?.message)
   }
@@ -236,14 +309,24 @@ function pilihTemplate(t) {
 
 function handleClickOutside(e) {
   if (!e.target.closest('.relative')) {
-    const match = templateList.value.some(
+    const matchTemplate = templateList.value.some(
       t => t.nama_template.toLowerCase() === searchTemplate.value.toLowerCase()
     )
-    if (!match) {
+    if (!matchTemplate) {
       searchTemplate.value  = ''
       templateDipilih.value = ''
     }
     showDropdown.value = false
+    
+    const matchSPK = spkList.value.some(
+      s => `${s.id} - ${s.nama_spk}`.toLowerCase() === searchSPK.value.toLowerCase()
+    )
+    if (!matchSPK) {
+      searchSPK.value = ''
+      spkDipilih.value = ''
+      templateList.value = []
+    }
+    showSpkDropdown.value = false
   }
 }
 
@@ -355,6 +438,10 @@ async function handleSimpan() {
   errorTemplate.value = ''
   serverError.value   = ''
 
+  if (!spkDipilih.value) {
+    errorSPK.value = 'Pilih SPK terlebih dahulu.'
+    return
+  }
   if (!templateDipilih.value) {
     errorTemplate.value = 'Pilih template terlebih dahulu.'
     return
@@ -369,6 +456,7 @@ async function handleSimpan() {
     const token = localStorage.getItem('token')
 
     await axios.post('/api/beranda/simpan-dokumen', {
+      id_spk:       spkDipilih.value,
       id_template:  parseInt(templateDipilih.value),
       dokumen_list: dokumenList.value.map(d => ({
         nama_dokumen: d.namaFile,
@@ -387,7 +475,7 @@ async function handleSimpan() {
 }
 
 onMounted(() => {
-  fetchTemplateList()
+  fetchSPKList()
   document.addEventListener('click', handleClickOutside)
 })
 

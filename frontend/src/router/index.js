@@ -26,9 +26,27 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/cabang",
+    name: "Cabang",
+    component: () => import("../views/Cabang.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/evaluasi",
     name: "Evaluasi",
     component: () => import("../views/Evaluasi.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/spk",
+    name: "SPK",
+    component: () => import("../views/SPK.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/spk/detail/:id",
+    name: "SPKDetail",
+    component: () => import("../views/SPKDetail.vue"),
     meta: { requiresAuth: true },
   },
   {

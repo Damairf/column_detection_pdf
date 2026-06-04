@@ -7,6 +7,8 @@ from routers import auth
 from routers import profile_router
 from routers import user_router
 from routers import evaluasi_router
+from routers import cabang_router
+from routers import spk_router
 from database.database import engine
 from database import models
 
@@ -71,6 +73,19 @@ app.include_router(
     tags=["Evaluasi"]
 )
 
+# Router cabang (admin only)
+app.include_router(
+    cabang_router.router,
+    prefix="/cabang",
+    tags=["Cabang"]
+)
+
+# Router SPK
+app.include_router(
+    spk_router.router,
+    prefix="/spk",
+    tags=["SPK"]
+)
 
 @app.get("/")
 def root():

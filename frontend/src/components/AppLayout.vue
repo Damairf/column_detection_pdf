@@ -31,7 +31,7 @@
           Beranda
         </router-link>
 
-        <router-link to="/template"
+        <router-link v-if="user.role === 'admin'" to="/template"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
           :class="isActive('/template') ? 'bg-gray-900 text-white shadow' : 'text-gray-600 hover:bg-gray-100'"
         >
@@ -51,6 +51,16 @@
           Evaluasi
         </router-link>
 
+        <router-link v-if="user.role === 'admin'" to="/spk"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
+          :class="isActive('/spk') ? 'bg-gray-900 text-white shadow' : 'text-gray-600 hover:bg-gray-100'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          SPK
+        </router-link>
+
         <router-link v-if="user.role === 'admin'" to="/pengguna"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
           :class="isActive('/pengguna') ? 'bg-gray-900 text-white shadow' : 'text-gray-600 hover:bg-gray-100'"
@@ -59,6 +69,16 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           Pengguna
+        </router-link>
+
+        <router-link v-if="user.role === 'admin'" to="/cabang"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
+          :class="isActive('/cabang') ? 'bg-gray-900 text-white shadow' : 'text-gray-600 hover:bg-gray-100'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          Cabang
         </router-link>
 
       </nav>
@@ -112,7 +132,9 @@ const pageTitle = computed(() => {
     '/profile':          'Profile',
     '/profile/ubah':     'Profile / Ubah',
     '/pengguna':         'Pengguna',
+    '/cabang':           'Cabang',
     '/evaluasi':         'Evaluasi',
+    '/spk':              'SPK',
   }
   if (map[p]) return map[p]
 
@@ -120,6 +142,7 @@ const pageTitle = computed(() => {
   if (p === '/kolom/edit') return `${q} / Edit Kolom`
 
   if (/^\/beranda\/detail\/\d+$/.test(p)) return 'Beranda / Detail'
+  if (/^\/spk\/detail\/[^\/]+$/.test(p)) return 'SPK / Detail'
 
   if (/^\/template\/detail\/\d+$/.test(p))       return 'Template / Detail'
   if (/^\/template\/detail\/\d+\/ubah$/.test(p)) return 'Template / Detail / Ubah'
@@ -137,6 +160,10 @@ function isActive(basePath) {
   if (basePath === '/beranda') {
     return route.path === '/beranda'
       || route.path.startsWith('/beranda/')
+  }
+  if (basePath === '/spk') {
+    return route.path === '/spk'
+      || route.path.startsWith('/spk/')
   }
   return route.path === basePath || route.path.startsWith(basePath + '/')
 }

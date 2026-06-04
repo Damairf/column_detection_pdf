@@ -55,6 +55,28 @@
                 </button>
               </div>
             </div>
+
+            <!-- Pilih SPK -->
+            <div class="relative">
+              <button
+                v-if="!selectedSPK"
+                @click="openSPKModal"
+                class="flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm cursor-pointer"
+              >
+                Pilih SPK
+              </button>
+              <div
+                v-else
+                class="flex items-center gap-2 px-4 py-2 border border-gray-300 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg shadow-sm"
+              >
+                {{ selectedSPK.nama_spk }}
+                <button @click="resetSPK" class="text-gray-500 hover:text-red-500 transition cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -258,6 +280,65 @@
         Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
       </div>
     </div>
+    
+    <!-- Modal Pilih SPK -->
+    <div v-if="showSPKModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="showSPKModal = false">
+      <div class="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl relative">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-gray-800">Pilih SPK</h2>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-3.35z" />
+              </svg>
+            </span>
+            <input
+              v-model="searchSPKModal"
+              type="text"
+              placeholder="Cari SPK...."
+              class="pl-9 pr-4 py-2 w-64 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50 shadow-sm"
+            />
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
+          <div class="overflow-y-auto max-h-80">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-gray-200 bg-gray-50 sticky top-0">
+                  <th class="px-5 py-3 text-center font-semibold text-gray-700">Nomor SPK</th>
+                  <th class="px-5 py-3 text-center font-semibold text-gray-700">Nama SPK</th>
+                  <th class="px-5 py-3 text-center font-semibold text-gray-700">Tanggal Retail</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="loadingSPK">
+                  <td colspan="3" class="px-5 py-10 text-center text-gray-400 text-sm">Memuat SPK...</td>
+                </tr>
+                <tr v-else-if="filteredSPKModal.length === 0">
+                  <td colspan="3" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada SPK ditemukan.</td>
+                </tr>
+                <tr
+                  v-else
+                  v-for="s in filteredSPKModal"
+                  :key="s.id"
+                  @click="pilihSPK(s)"
+                  class="border-b border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <td class="px-5 py-3 text-center text-gray-700 font-medium">{{ s.id }}</td>
+                  <td class="px-5 py-3 text-center text-gray-700">{{ s.nama_spk }}</td>
+                  <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(s.tgl_retail) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button @click="showSPKModal = false" class="cursor-pointer px-5 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Tutup</button>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -281,6 +362,51 @@ const isExporting      = ref(false)
 const showCabangDropdown = ref(false)
 const selectedCabangIds  = ref([])
 const cabangDropdownRef  = ref(null)
+
+const showSPKModal = ref(false)
+const listSPK = ref([])
+const loadingSPK = ref(false)
+const searchSPKModal = ref('')
+const selectedSPK = ref(null)
+
+const filteredSPKModal = computed(() => {
+  const q = searchSPKModal.value.toLowerCase().trim()
+  if (!q) return listSPK.value
+  return listSPK.value.filter(s => 
+    s.id.toLowerCase().includes(q) || 
+    s.nama_spk.toLowerCase().includes(q)
+  )
+})
+
+async function fetchSPK() {
+  loadingSPK.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.get('/api/spk/', { headers: { Authorization: `Bearer ${token}` } })
+    listSPK.value = res.data
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingSPK.value = false
+  }
+}
+
+function openSPKModal() {
+  fetchSPK()
+  searchSPKModal.value = ''
+  showSPKModal.value = true
+}
+
+function pilihSPK(s) {
+  selectedSPK.value = s
+  showSPKModal.value = false
+  fetchEvaluasi()
+}
+
+function resetSPK() {
+  selectedSPK.value = null
+  fetchEvaluasi()
+}
 
 const cabangTerpilih = computed(() =>
   listCabang.value.filter(c => selectedCabangIds.value.includes(c.id))
@@ -354,7 +480,8 @@ async function fetchEvaluasi() {
   errorMsg.value = ''
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('/api/evaluasi/', { headers: { Authorization: `Bearer ${token}` } })
+    const spkParam = selectedSPK.value ? `?id_spk=${selectedSPK.value.id}` : ''
+    const res = await axios.get(`/api/evaluasi/${spkParam}`, { headers: { Authorization: `Bearer ${token}` } })
     items.value = res.data
   } catch (err) {
     if (err.response && err.response.status === 403) {
@@ -389,6 +516,9 @@ async function handleEkspor() {
 
     const params = new URLSearchParams()
     selectedCabangIds.value.forEach(id => params.append('cabang_ids', id))
+    if (selectedSPK.value) {
+      params.append('id_spk', selectedSPK.value.id)
+    }
 
     const res = await axios.get(`/api/evaluasi/ekspor?${params.toString()}`, {
       headers: { Authorization: `Bearer ${token}` },

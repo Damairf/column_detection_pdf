@@ -1,31 +1,25 @@
 <template>
   <AppLayout>
-    <div class="max-w-lg mx-auto mt-6">
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="max-w-4xl mx-auto mt-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col md:flex-row">
 
-        <!-- Header card abu -->
-        <div class="h-24 bg-gradient-to-r from-gray-700 to-gray-900"></div>
-
-        <!-- Foto & Info -->
-        <div class="px-8 pb-8">
-
+        <!-- Kiri: Foto, Nama, Divisi -->
+        <div class="md:w-72 w-full bg-gradient-to-b from-gray-700 to-gray-900 flex flex-col items-center justify-center py-12 px-8">
           <!-- Avatar -->
-          <div class="flex justify-center -mt-12 mb-4">
-            <div class="w-24 h-24 rounded-full border-4 border-white shadow-md overflow-hidden bg-gray-200">
-              <img
-                src="/src/assets/avatar-default.jpg"
-                alt="Foto Profil"
-                class="w-full h-full object-cover"
-              />
-            </div>
+          <div class="w-28 h-28 rounded-full border-4 border-white/30 shadow-lg overflow-hidden bg-gray-200 mb-5">
+            <img
+              src="/src/assets/avatar-default.jpg"
+              alt="Foto Profil"
+              class="w-full h-full object-cover"
+            />
           </div>
-
           <!-- Nama & Divisi -->
-          <div class="text-center mb-6">
-            <h2 class="text-xl font-bold text-gray-800">{{ form.nama || '-' }}</h2>
-            <p class="text-sm text-gray-500">{{ form.divisi || '-' }}</p>
-          </div>
+          <h2 class="text-xl font-bold text-white text-center">{{ form.nama || '-' }}</h2>
+          <p class="text-sm font-semibold text-gray-300 mt-1 text-center">{{ form.divisi || '-' }}</p>
+        </div>
 
+        <!-- Kanan: Detail Info & Tombol Keluar -->
+        <div class="flex-1 px-8 py-8 flex flex-col justify-between">
           <!-- Mode Lihat -->
           <div class="space-y-3 mb-6">
             <!-- NAMA -->
@@ -45,7 +39,7 @@
             <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div class="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3h6v4H9V3zm-4 14h4v4H5v-4zm10 0h4v4h-4v-4zM12 7v4m0 0H7v6m5-6h5v6" />
                 </svg>
               </div>
               <div>
@@ -58,7 +52,7 @@
             <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div class="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422A12.083 12.083 0 0120 17.764L12 22l-8-4.236a12.083 12.083 0 011.84-7.186L12 14z" />
                 </svg>
               </div>
               <div>
@@ -84,7 +78,9 @@
             <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div class="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <g transform="translate(0,2)">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 10a4 4 0 11-8 0 4 4 0 018 0v4a2 2 0 104 0V10a8 8 0 10-8 8" />
+                  </g>
                 </svg>
               </div>
               <div>
@@ -103,8 +99,8 @@
               Keluar
             </button>
           </div>
-
         </div>
+
       </div>
     </div>
   </AppLayout>
