@@ -13,6 +13,7 @@ from datetime import datetime
 
 router = APIRouter()
 
+# ── GET /evaluasi/ ────────────────────────────────────────────────────
 @router.get("/")
 def get_evaluasi_list(
     id_spk: Optional[str] = Query(default=None),
@@ -37,20 +38,16 @@ def get_evaluasi_list(
                 .correlate(models.User)
                 .scalar_subquery()
             ).label("cabang"),
-            (
-                select(models.Template.nama_template)
-                .where(models.Template.id == models.Dokumen.id_template)
-                .correlate(models.Dokumen)
-                .scalar_subquery()
-            ).label("nama_template"),
-            models.Dokumen.created_at,
+            models.SPK.id.label("nomor_spk"),
+            models.SPK.nama_spk,
+            models.SPK.tgl_retail,
             models.Nilai.kriteria,
             models.Nilai.jml_benar,
             models.Nilai.skor,
-            models.Dokumen.id_spk,
         )
         .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
         .outerjoin(models.Nilai, models.Dokumen.id == models.Nilai.id_dokumen)
+        .outerjoin(models.SPK, models.Dokumen.id_spk == models.SPK.id)
     )
 
     if id_spk:
@@ -60,22 +57,22 @@ def get_evaluasi_list(
 
     return [
         {
-            "id":            row.id,
-            "nama_dokumen":  row.nama_dokumen,
-            "pengunggah":    row.pengunggah,
-            "cabang":        row.cabang,
-            "nama_template": row.nama_template,
-            "created_at":    row.created_at,
-            "kriteria":      row.kriteria if row.kriteria is not None else 0,
-            "jml_benar":     row.jml_benar if row.jml_benar is not None else 0,
-            "skor":          row.skor if row.skor is not None else 0,
-            "id_spk":        row.id_spk,
+            "id":           row.id,
+            "nama_dokumen": row.nama_dokumen,
+            "pengunggah":   row.pengunggah,
+            "cabang":       row.cabang,
+            "nomor_spk":    row.nomor_spk,
+            "nama_spk":     row.nama_spk,
+            "tgl_retail":   row.tgl_retail,
+            "kriteria":     row.kriteria  if row.kriteria  is not None else 0,
+            "jml_benar":    row.jml_benar if row.jml_benar is not None else 0,
+            "skor":         row.skor      if row.skor      is not None else 0,
         }
         for row in results
     ]
 
 
-# ── GET /evaluasi/ekspor — ekspor evaluasi (excel) ────────────────────
+# ── GET /evaluasi/ekspor ──────────────────────────────────────────────
 @router.get("/ekspor")
 def ekspor_evaluasi(
     cabang_ids: Optional[List[int]] = Query(default=None),
@@ -100,29 +97,25 @@ def ekspor_evaluasi(
                 .correlate(models.User)
                 .scalar_subquery()
             ).label("cabang"),
-            (
-                select(models.Template.nama_template)
-                .where(models.Template.id == models.Dokumen.id_template)
-                .correlate(models.Dokumen)
-                .scalar_subquery()
-            ).label("nama_template"),
-            models.Dokumen.created_at,
+            models.SPK.id.label("nomor_spk"),
+            models.SPK.nama_spk,
+            models.SPK.tgl_retail,
             models.Nilai.kriteria,
             models.Nilai.jml_benar,
             models.Nilai.skor,
-            models.Dokumen.id_spk,
         )
         .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
         .outerjoin(models.Nilai, models.Dokumen.id == models.Nilai.id_dokumen)
+        .outerjoin(models.SPK, models.Dokumen.id_spk == models.SPK.id)
     )
 
     if cabang_ids:
         query = query.filter(models.User.id_cabang.in_(cabang_ids))
-        
+
     if id_spk:
         query = query.filter(models.Dokumen.id_spk == id_spk)
 
-    results = query.order_by(models.Dokumen.created_at.desc()).all()
+    results = query.order_by(models.SPK.tgl_retail.desc()).all()
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -132,13 +125,14 @@ def ekspor_evaluasi(
     ws.column_dimensions['B'].width = 52.1
     ws.column_dimensions['C'].width = 30.0
     ws.column_dimensions['D'].width = 25.0
-    ws.column_dimensions['E'].width = 45.1
-    ws.column_dimensions['F'].width = 20.1
-    ws.column_dimensions['G'].width = 18.1
+    ws.column_dimensions['E'].width = 20.0
+    ws.column_dimensions['F'].width = 45.1
+    ws.column_dimensions['G'].width = 20.1
     ws.column_dimensions['H'].width = 18.1
     ws.column_dimensions['I'].width = 18.1
+    ws.column_dimensions['J'].width = 18.1
 
-    headers = ["ID", "Nama Dokumen", "Pengunggah", "Cabang", "Nama Template", "Tanggal", "Kriteria", "Benar", "Skor"]
+    headers = ["ID", "Nama Dokumen", "Pengunggah", "Cabang", "Nomor SPK", "Nama SPK", "Tanggal Retail", "Kriteria", "Benar", "Skor"]
     ws.append(headers)
 
     header_fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
@@ -158,27 +152,26 @@ def ekspor_evaluasi(
     ws.freeze_panes = "A2"
 
     for row in results:
-        tgl = row.created_at.strftime("%d/%m/%Y") if row.created_at else "-"
+        tgl = row.tgl_retail.strftime("%d/%m/%Y") if row.tgl_retail else "—"
         kriteria  = int(row.kriteria)  if row.kriteria  is not None else 0
         jml_benar = int(row.jml_benar) if row.jml_benar is not None else 0
         skor      = int(row.skor)      if row.skor      is not None else 0
-        skor_desimal = skor / 100
 
         ws.append([
             f"D-{str(row.id).zfill(6)}",
-            row.nama_dokumen    or "—",
-            row.pengunggah      or "—",
-            row.cabang          or "—",
-            row.nama_template   or "—",
+            row.nama_dokumen or "—",
+            row.pengunggah   or "—",
+            row.cabang       or "—",
+            row.nomor_spk    or "—",
+            row.nama_spk     or "—",
             tgl,
             kriteria,
             f"{jml_benar}/{kriteria}",
-            skor_desimal,
-            # f"{skor}",
+            skor / 100,
         ])
 
     data_font = Font(size=12)
-    for data_row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=9):
+    for data_row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=10):
         for cell in data_row:
             cell.border = thin_border
             cell.font = data_font
@@ -187,8 +180,15 @@ def ekspor_evaluasi(
     wb.save(output)
     output.seek(0)
 
-    tgl_sekarang = datetime.now().strftime("%d-%m-%Y")
-    filename = f"Evaluasi_Dokumen_{tgl_sekarang}.xlsx"
+    if id_spk and results:
+        first = results[0]
+        nomor = (first.nomor_spk or "").replace(" ", "-")
+        nama  = (first.nama_spk  or "").replace(" ", "-")
+        tgl   = first.tgl_retail.strftime("%d-%m-%Y") if first.tgl_retail else "tanpa-tanggal"
+        filename = f"Evaluasi-Dokumen_{nomor}-{nama}_{tgl}.xlsx"
+    else:
+        tgl_sekarang = datetime.now().strftime("%d-%m-%Y")
+        filename = f"Evaluasi-Dokumen_{tgl_sekarang}.xlsx"
 
     return StreamingResponse(
         output,
