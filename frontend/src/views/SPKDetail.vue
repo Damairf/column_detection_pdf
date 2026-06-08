@@ -31,7 +31,7 @@
 
       <!-- Card Info SPK -->
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-7 mb-5">
-        <div class="grid grid-cols-3 gap-5">
+        <div class="grid grid-cols-4 gap-5">
 
           <!-- Nomor SPK -->
           <div>
@@ -54,6 +54,14 @@
             <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal Retail</label>
             <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
               {{ formatTanggal(spk?.tgl_retail) }}
+            </div>
+          </div>
+
+          <!-- ID Template -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">ID Template</label>
+            <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
+              {{ spk?.id_template ?? '—' }}
             </div>
           </div>
 

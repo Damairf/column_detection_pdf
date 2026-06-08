@@ -565,8 +565,10 @@ async function fetchSPK() {
 
 const filteredCabangModal = computed(() => {
   const q = searchCabangModal.value.toLowerCase().trim()
-  if (!q) return listCabang.value
-  return listCabang.value.filter(c => c.nama_cabang.toLowerCase().includes(q))
+  const data = q
+    ? listCabang.value.filter(c => c.nama_cabang.toLowerCase().includes(q))
+    : listCabang.value
+  return data.slice().sort((a, b) => a.nama_cabang.localeCompare(b.nama_cabang))
 })
 
 const totalCabangModalPages = computed(() =>

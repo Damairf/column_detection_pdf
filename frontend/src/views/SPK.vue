@@ -37,6 +37,16 @@
             </div>
           </div>
           
+          <button
+            @click="showUploadModal = true"
+            class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Upload SPK
+          </button>
+
           <button v-if="currentUser.role === 'admin'" @click="openAddModal" class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -151,6 +161,104 @@
         </form>
       </div>
     </div>
+    <!-- Modal Upload SPK -->
+    <div
+      v-if="showUploadModal"
+      class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3"
+      style="background: rgba(0,0,0,0.35);"
+      @click.self="closeUploadModal"
+    >
+      <div
+        v-if="uploadError"
+        class="w-full max-w-lg mx-6 px-4 py-3 bg-white rounded-lg text-sm text-red-500 text-center"
+      >
+        {{ uploadError }}
+      </div>
+
+      <div
+        v-if="uploadDuplikat.length > 0"
+        class="w-full max-w-lg mx-6 px-4 py-3 bg-white rounded-lg text-sm text-red-500 text-center"
+      >
+        {{ uploadDuplikat.length }} SPK sudah pernah ditambahkan
+      </div>
+
+      <div
+        v-if="uploadSuccess"
+        class="w-full max-w-lg mx-6 px-4 py-3 bg-white rounded-lg text-sm text-gray-800 text-center"
+      >
+        {{ uploadSuccess }}
+      </div>
+
+      <div
+        v-if="isUploading"
+        class="w-full max-w-lg mx-6 px-4 py-3 bg-white rounded-lg"
+      >
+        <div class="flex justify-between text-xs text-gray-500 mb-2">
+          <span>Mengupload {{ uploadProgress.current }} / {{ uploadProgress.total }} SPK...</span>
+          <span>{{ uploadProgress.percent }}%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div
+            class="bg-gray-900 h-2 rounded-full transition-all duration-300"
+            :style="{ width: uploadProgress.percent + '%' }"
+          ></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-6 p-8">
+        <div
+          class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-14 px-6 mb-6 transition-colors cursor-pointer"
+          :class="isDragging
+            ? 'border-gray-500 bg-gray-100'
+            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
+          @dragover.prevent="isDragging = true"
+          @dragleave.prevent="isDragging = false"
+          @drop.prevent="handleDrop"
+          @click="triggerFileInput"
+        >
+          <div class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          <p class="text-sm text-gray-500">Tarik dan unggah file XLSX anda</p>
+          <p class="text-xs text-gray-400 mt-1">Format: Nomor SPK, Nama SPK, Tanggal Retail, ID Template</p>
+        </div>
+
+        <input ref="fileInputRef" type="file" accept=".xlsx" class="hidden" @change="handleFileInput" />
+
+        <div class="flex justify-center gap-3">
+          <button
+            @click="closeUploadModal"
+            :disabled="isUploading"
+            class="px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm"
+            :class="isUploading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
+          >
+            Tutup
+          </button>
+          <button
+            @click.stop="triggerFileInput"
+            :disabled="isUploading"
+            class="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm"
+            :class="isUploading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
+          >
+            <span v-if="isUploading" class="flex items-center gap-2">
+              <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Mengunggah...
+            </span>
+            <span v-else class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Unggah file
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -159,6 +267,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import * as XLSX from 'xlsx'
 
 const router = useRouter()
 
@@ -166,6 +275,15 @@ const spks = ref([])
 const listTemplate = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
+
+const showUploadModal = ref(false)
+const isDragging      = ref(false)
+const isUploading     = ref(false)
+const uploadError   = ref('')
+const uploadSuccess = ref('')
+const uploadDuplikat = ref([])
+const fileInputRef    = ref(null)
+const uploadProgress  = ref({ current: 0, total: 0, percent: 0 })
 
 const searchQuery = ref('')
 const currentPage = ref(1)
@@ -273,6 +391,144 @@ function onPageInputChange(e) {
   const val = parseInt(e.target.value)
   if (!isNaN(val)) goToPage(val)
   e.target.value = currentPage.value
+}
+
+function closeUploadModal() {
+  if (isUploading.value) return
+  showUploadModal.value = false
+  uploadError.value     = ''
+  uploadSuccess.value   = ''
+  uploadDuplikat.value  = []
+  isDragging.value      = false
+  uploadProgress.value  = { current: 0, total: 0, percent: 0 }
+}
+
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
+
+function handleFileInput(e) {
+  const file = e.target.files[0]
+  if (file) prosesFileXLSX(file)
+  e.target.value = ''
+}
+
+function handleDrop(e) {
+  isDragging.value = false
+  const file = e.dataTransfer.files[0]
+  if (file) prosesFileXLSX(file)
+}
+
+async function prosesFileXLSX(file) {
+  uploadError.value   = ''
+  uploadSuccess.value = ''
+  uploadDuplikat.value = []
+
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    uploadError.value = 'File harus berformat XLSX.'
+    return
+  }
+
+  isUploading.value = true
+
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const data     = new Uint8Array(e.target.result)
+      const workbook = XLSX.read(data, { type: 'array' })
+      const sheet    = workbook.Sheets[workbook.SheetNames[0]]
+      const rows     = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+
+      const dataRows = rows.slice(1).filter(row =>
+        row.length >= 4 && row[0] && row[1] && row[2]
+      )
+
+      if (dataRows.length === 0) {
+        uploadError.value = 'File kosong atau format tidak sesuai.'
+        isUploading.value = false
+        return
+      }
+
+      const token = localStorage.getItem('token')
+      let berhasil = 0
+      let gagal    = 0
+      const duplikat    = []
+      const pesanGagal = []
+
+      uploadProgress.value = { current: 0, total: dataRows.length, percent: 0 }
+
+      for (let i = 0; i < dataRows.length; i++) {
+        const row = dataRows[i]
+
+        let tglRetail = ''
+        const rawTgl  = row[2]
+        if (typeof rawTgl === 'number') {
+          const jsDate = new Date(Math.round((rawTgl - 25569) * 86400 * 1000))
+          const dd = String(jsDate.getUTCDate()).padStart(2, '0')
+          const mm = String(jsDate.getUTCMonth() + 1).padStart(2, '0')
+          const yyyy = jsDate.getUTCFullYear()
+          tglRetail = `${yyyy}-${mm}-${dd}`
+        } else if (typeof rawTgl === 'string') {
+          const parts = rawTgl.includes('/')
+            ? rawTgl.split('/').reverse().join('-')
+            : rawTgl
+          tglRetail = parts
+        }
+
+        const payload = {
+          id:          String(row[0]).trim(),
+          nama_spk:    String(row[1]).trim(),
+          tgl_retail:  tglRetail,
+          template_id: row[3] ? parseInt(row[3]) : null
+        }
+
+        try {
+          await axios.post('/api/spk/', payload, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          berhasil++
+        } catch (err) {
+          const detail = err.response?.data?.detail || ''
+          if (err.response?.status === 400 && detail.toLowerCase().includes('sudah ada')) {
+            duplikat.push(payload.id)
+          } else {
+            gagal++
+            pesanGagal.push(`Baris ${i + 2} (${payload.id}): ${detail}`)
+          }
+        }
+
+        uploadProgress.value = {
+          current: i + 1,
+          total:   dataRows.length,
+          percent: Math.round(((i + 1) / dataRows.length) * 100)
+        }
+      }
+
+      if (berhasil > 0) {
+        uploadSuccess.value = `${berhasil} SPK berhasil ditambahkan.`
+      }
+      if (duplikat.length > 0) {
+        uploadDuplikat.value = duplikat
+      }
+      if (gagal > 0) {
+        uploadError.value = `${gagal} SPK gagal ditambahkan: ${pesanGagal.join(' | ')}`
+      }
+
+      fetchSPK()
+
+    } catch (err) {
+      uploadError.value = 'Gagal memproses file XLSX. Pastikan format sesuai.'
+    } finally {
+      isUploading.value = false
+    }
+  }
+
+  reader.onerror = () => {
+    uploadError.value = 'Gagal membaca file.'
+    isUploading.value = false
+  }
+
+  reader.readAsArrayBuffer(file)
 }
 
 function openAddModal() {

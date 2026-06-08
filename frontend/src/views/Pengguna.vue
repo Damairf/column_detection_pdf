@@ -335,7 +335,9 @@ async function fetchCabang() {
   try {
     const token = localStorage.getItem('token')
     const res = await axios.get('/api/pengguna/cabang', { headers: { Authorization: `Bearer ${token}` } })
-    listCabang.value = res.data
+    listCabang.value = res.data.slice().sort((a, b) =>
+      a.nama_cabang.localeCompare(b.nama_cabang)
+    )
   } catch (err) {
     console.error('Gagal memuat data cabang:', err)
   }
