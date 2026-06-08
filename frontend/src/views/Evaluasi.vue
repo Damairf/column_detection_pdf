@@ -126,7 +126,7 @@
                 :key="row.id"
                 class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
               >
-                <td class="px-5 py-3 text-center text-gray-700 font-mono text-sm">{{ formatId(row.id) }}</td>
+                <td class="px-5 py-3 text-center text-gray-700 font-mono text-sm">{{ (row.id) }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_dokumen }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ row.pengunggah || '—' }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ row.cabang || '—' }}</td>
@@ -661,7 +661,7 @@ const filteredData = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   if (q) {
     data = data.filter(row =>
-      formatId(row.id).toLowerCase().includes(q)        ||
+      (row.id).toLowerCase().includes(q)        ||
       (row.nama_dokumen || '').toLowerCase().includes(q) ||
       (row.pengunggah   || '').toLowerCase().includes(q) ||
       (row.cabang       || '').toLowerCase().includes(q) ||
@@ -755,9 +755,6 @@ async function handleEkspor() {
   }
 }
 
-function formatId(id) {
-  return id ? `D-${String(id).padStart(6, '0')}` : '—'
-}
 function formatTanggal(isoString) {
   if (!isoString) return '—'
   const d = new Date(isoString)

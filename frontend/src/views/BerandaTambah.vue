@@ -464,7 +464,6 @@ async function handleSimpan() {
       }))
     }, { headers: { Authorization: `Bearer ${token}` } })
 
-    // Redirect ke beranda — status akan Memuat, lalu berubah saat deteksi selesai
     router.replace('/beranda')
 
   } catch (err) {

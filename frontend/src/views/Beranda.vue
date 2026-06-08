@@ -113,7 +113,7 @@
               :key="row.id"
               class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
             >
-              <td class="px-5 py-3 text-center text-gray-700 font-mono text-xs">{{ formatId(row.id) }}</td>
+              <td class="px-5 py-3 text-center text-gray-700 font-mono text-xs">{{ (row.id) }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_dokumen }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.pengunggah || '—' }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.cabang || '—' }}</td>
@@ -329,7 +329,6 @@ function startPollingIfNeeded() {
 }
 
 // Format helpers
-function formatId(id) { return 'D-' + String(id).padStart(6, '0') }
 function formatTanggal(iso) {
   if (!iso) return '-'
   const d = new Date(iso)
@@ -361,7 +360,7 @@ const filteredData = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   if (!q) return allData.value
   return allData.value.filter(row =>
-    formatId(row.id).toLowerCase().includes(q) ||
+    String(row.id).toLowerCase().includes(q) ||
     row.nama_dokumen?.toLowerCase().includes(q) ||
     row.pengunggah?.toLowerCase().includes(q) ||
     row.nama_template?.toLowerCase().includes(q) ||

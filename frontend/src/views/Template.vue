@@ -131,7 +131,7 @@
               <td colspan="7" class="px-5 py-10 text-center text-red-400 text-sm">{{ errorMsg }}</td>
             </tr>
             <tr v-else v-for="row in paginatedData" :key="row.id" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <td class="px-5 py-3 text-center text-gray-700 font-mono text-xs">{{ formatId(row.id) }}</td>
+              <td class="px-5 py-3 text-center text-gray-700 font-mono text-xs">{{ (row.id) }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_template }}</td>
               <td class="px-5 py-3 text-center text-gray-500">{{ row.username || '—' }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.jml_halaman }}</td>
@@ -275,7 +275,6 @@ async function fetchData() {
 onMounted(() => fetchData())
 watch(searchQuery, () => { currentPage.value = 1 })
 
-function formatId(id)   { return 'T-' + String(id).padStart(6, '0') }
 function formatTanggal(isoString) {
   if (!isoString) return '-'
   const d = new Date(isoString)
@@ -286,7 +285,7 @@ const filteredData = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   if (!q) return allData.value
   return allData.value.filter(row =>
-    formatId(row.id).toLowerCase().includes(q) ||
+    String(row.id).toLowerCase().includes(q) ||
     row.nama_template?.toLowerCase().includes(q) ||
     row.username?.toLowerCase().includes(q) ||
     String(row.jml_halaman).includes(q) ||
