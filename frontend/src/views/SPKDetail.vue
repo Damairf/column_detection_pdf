@@ -273,13 +273,17 @@
                   class="flex items-center gap-2 mb-2 cursor-pointer"
                 >
                   <input
-                    type="checkbox"
+                    type="radio"
                     :value="t.id"
-                    v-model="form.template_ids"
-                    class="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                    v-model="form.template_id"
+                    name="template"
+                    class="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
                   />
                   <span class="text-sm text-gray-700">{{ t.nama_template }}</span>
                 </label>
+                <div v-if="listTemplate.length === 0" class="text-sm text-gray-400 text-center py-2">
+                  Tidak ada template tersedia.
+                </div>
               </div>
             </div>
           </div>
@@ -370,7 +374,7 @@ const loadingDokumen = ref(false)
 
 const showEditModal   = ref(false)
 const showDeleteModal = ref(false)
-const form     = ref({ nama_spk: '', tgl_retail: '', template_ids: [] })
+const form     = ref({ nama_spk: '', tgl_retail: '', template_id: null })
 const saving   = ref(false)
 const deleting = ref(false)
 const formError = ref('')
@@ -485,14 +489,15 @@ async function fetchData() {
 function openEditModal() {
   if (spk.value) {
     form.value = {
-      nama_spk:     spk.value.nama_spk,
-      tgl_retail:   spk.value.tgl_retail,
-      template_ids: spk.value.templates ? spk.value.templates.map(t => t.id) : []
+      nama_spk:    spk.value.nama_spk,
+      tgl_retail:  spk.value.tgl_retail,
+      template_id: spk.value.id_template ?? null
     }
   }
-  formError.value      = ''
-  showEditModal.value  = true
+  formError.value     = ''
+  showEditModal.value = true
 }
+
 function closeEditModal() { showEditModal.value = false }
 
 async function handleUpdate() {

@@ -711,7 +711,7 @@ function resetPilihData() {
 
 async function handleEkspor() {
   if (appliedCabangIds.value.length === 0) {
-    alert('Pilih cabang terlebih dahulu melalui Pilih Data.')
+    alert('Pilih data terlebih dahulu.')
     return
   }
   isExporting.value = true

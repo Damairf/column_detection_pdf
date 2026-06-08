@@ -3,13 +3,6 @@ from sqlalchemy.sql import func
 from database.database import Base
 from sqlalchemy.orm import relationship
 
-spk_template = Table(
-    "spk_template",
-    Base.metadata,
-    Column("spk_id", String, ForeignKey("spk.id", ondelete="CASCADE"), primary_key=True),
-    Column("template_id", Integer, ForeignKey("template.id", ondelete="CASCADE"), primary_key=True),
-)
-
 class Cabang(Base):
     __tablename__ = "cabang"
 
@@ -108,9 +101,10 @@ class SPK(Base):
     id_user = Column(Integer, ForeignKey("users.id"))
     nama_spk = Column(String)
     tgl_retail = Column(Date)
+    id_template = Column(Integer, ForeignKey("template.id"), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
-    templates = relationship("Template", secondary=spk_template, backref="spks")
+    template = relationship("Template", backref="spks")
     user_rel = relationship("User")
 
     @property

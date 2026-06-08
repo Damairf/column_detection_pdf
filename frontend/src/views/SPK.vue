@@ -126,10 +126,18 @@
               </div>
               <div class="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-gray-50">
                 <label v-for="t in filteredTemplates" :key="t.id" class="flex items-center gap-2 mb-2 cursor-pointer">
-                  <input type="checkbox" :value="t.id" v-model="form.template_ids" class="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900" />
+                  <input
+                    type="radio"
+                    :value="t.id"
+                    v-model="form.template_id"
+                    name="template"
+                    class="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+                  />
                   <span class="text-sm text-gray-700">{{ t.nama_template }}</span>
                 </label>
-                <div v-if="filteredTemplates.length === 0" class="text-sm text-gray-400 text-center py-2">Tidak ada template ditemukan.</div>
+                <div v-if="filteredTemplates.length === 0" class="text-sm text-gray-400 text-center py-2">
+                  Tidak ada template ditemukan.
+                </div>
               </div>
             </div>
           </div>
@@ -188,7 +196,7 @@ const currentUser = computed(() => {
   catch { return {} }
 })
 
-const form = ref({ id: '', nama_spk: '', tgl_retail: '', template_ids: [] })
+const form = ref({ id: '', nama_spk: '', tgl_retail: '', template_id: null })
 
 function lihatDetail(id) { router.push(`/spk/detail/${id}`) }
 

@@ -44,7 +44,6 @@ def create_spk(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    # Cek apakah ID sudah ada
     existing = db.query(models.SPK).filter(models.SPK.id == spk_data.id).first()
     if existing:
         raise HTTPException(status_code=400, detail="ID SPK sudah ada")
@@ -53,13 +52,9 @@ def create_spk(
         id=spk_data.id,
         id_user=user_id,
         nama_spk=spk_data.nama_spk,
-        tgl_retail=spk_data.tgl_retail
+        tgl_retail=spk_data.tgl_retail,
+        id_template=spk_data.template_id
     )
-
-    # Tambahkan templates
-    if spk_data.template_ids:
-        templates = db.query(models.Template).filter(models.Template.id.in_(spk_data.template_ids)).all()
-        new_spk.templates = templates
 
     db.add(new_spk)
     db.commit()
@@ -77,15 +72,13 @@ def update_spk(
     spk = db.query(models.SPK).filter(models.SPK.id == spk_id).first()
     if not spk:
         raise HTTPException(status_code=404, detail="SPK tidak ditemukan")
-    
+
     if spk_data.nama_spk is not None:
         spk.nama_spk = spk_data.nama_spk
     if spk_data.tgl_retail is not None:
         spk.tgl_retail = spk_data.tgl_retail
-        
-    if spk_data.template_ids is not None:
-        templates = db.query(models.Template).filter(models.Template.id.in_(spk_data.template_ids)).all()
-        spk.templates = templates
+    if spk_data.template_id is not None:
+        spk.id_template = spk_data.template_id
 
     db.commit()
     db.refresh(spk)
