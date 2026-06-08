@@ -386,6 +386,30 @@ def batal_upload_dokumen(
 
     return {"message": "File berhasil dihapus", "deleted": deleted}
 
+@router.get("/spk-tersedia")
+def get_spk_tersedia(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    spk_sudah_upload = db.query(models.Dokumen.id_spk).filter(
+        models.Dokumen.id_user == user_id,
+        models.Dokumen.id_spk != None
+    ).distinct().all()
+
+    exclude_ids = {row.id_spk for row in spk_sudah_upload}
+
+    spks = db.query(models.SPK).all()
+
+    return [
+        {
+            "id":          s.id,
+            "nama_spk":    s.nama_spk,
+            "tgl_retail":  s.tgl_retail,
+            "id_template": s.id_template,
+        }
+        for s in spks
+        if s.id not in exclude_ids
+    ]
 
 # ── POST /beranda/simpan-dokumen ──────────────────────────────────────
 @router.post("/simpan-dokumen")
