@@ -64,20 +64,22 @@
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nomor SPK</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama SPK</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Tanggal Retail</th>
+                <th class="px-5 py-3.5 text-center font-semibold text-gray-700">ID Template</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Detail</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="4" class="px-5 py-10 text-center text-gray-400 text-sm">Memuat data...</td>
+                <td colspan="5" class="px-5 py-10 text-center text-gray-400 text-sm">Memuat data...</td>
               </tr>
               <tr v-else-if="paginatedData.length === 0">
-                <td colspan="4" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada data ditemukan.</td>
+                <td colspan="5" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada data ditemukan.</td>
               </tr>
               <tr v-else v-for="spk in paginatedData" :key="spk.id" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td class="px-5 py-3 text-center text-gray-700 font-medium">{{ spk.id }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ spk.nama_spk }}</td>
                 <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(spk.tgl_retail) }}</td>
+                <td class="px-5 py-3 text-center text-gray-500">{{ spk.id_template ?? '—' }}</td>
                 <td class="px-5 py-3 text-center flex items-center justify-center gap-3">
                   <button @click="lihatDetail(spk.id)" class="text-blue-500 hover:text-blue-700 font-medium hover:underline transition">
                     Detail
