@@ -16,14 +16,14 @@ router = APIRouter()
 # ── GET /evaluasi/ ────────────────────────────────────────────────────
 @router.get("/")
 def get_evaluasi_list(
-    id_spk: Optional[str] = Query(default=None),
+    start_date: Optional[str] = Query(default=None),
+    end_date:   Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
-
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Akses ditolak")
 
@@ -45,13 +45,17 @@ def get_evaluasi_list(
             models.Nilai.jml_benar,
             models.Nilai.skor,
         )
-        .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
-        .outerjoin(models.Nilai, models.Dokumen.id == models.Nilai.id_dokumen)
-        .outerjoin(models.SPK, models.Dokumen.id_spk == models.SPK.id)
+        .outerjoin(models.User,  models.Dokumen.id_user  == models.User.id)
+        .outerjoin(models.Nilai, models.Dokumen.id       == models.Nilai.id_dokumen)
+        .outerjoin(models.SPK,   models.Dokumen.id_spk   == models.SPK.id)
     )
 
-    if id_spk:
-        query = query.filter(models.Dokumen.id_spk == id_spk)
+    if start_date:
+        from datetime import date
+        query = query.filter(models.SPK.tgl_retail >= date.fromisoformat(start_date))
+    if end_date:
+        from datetime import date
+        query = query.filter(models.SPK.tgl_retail <= date.fromisoformat(end_date))
 
     results = query.order_by(models.Dokumen.created_at.desc()).all()
 
@@ -71,12 +75,12 @@ def get_evaluasi_list(
         for row in results
     ]
 
-
 # ── GET /evaluasi/ekspor ──────────────────────────────────────────────
 @router.get("/ekspor")
 def ekspor_evaluasi(
-    cabang_ids: Optional[List[int]] = Query(default=None),
-    id_spk: Optional[str] = Query(default=None),
+    cabang_ids:  Optional[List[int]] = Query(default=None),
+    start_date:  Optional[str]       = Query(default=None),
+    end_date:    Optional[str]       = Query(default=None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
@@ -112,10 +116,14 @@ def ekspor_evaluasi(
     if cabang_ids:
         query = query.filter(models.User.id_cabang.in_(cabang_ids))
 
-    if id_spk:
-        query = query.filter(models.Dokumen.id_spk == id_spk)
+    if start_date:
+        from datetime import date
+        query = query.filter(models.SPK.tgl_retail >= date.fromisoformat(start_date))
+    if end_date:
+        from datetime import date
+        query = query.filter(models.SPK.tgl_retail <= date.fromisoformat(end_date))
 
-    results = query.order_by(models.SPK.tgl_retail.desc()).all()
+    results = query.order_by(models.Dokumen.id.asc()).all()
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -158,7 +166,7 @@ def ekspor_evaluasi(
         skor      = int(row.skor)      if row.skor      is not None else 0
 
         ws.append([
-            f"D-{str(row.id).zfill(6)}",
+            row.id,
             row.nama_dokumen or "—",
             row.pengunggah   or "—",
             row.cabang       or "—",
@@ -180,15 +188,9 @@ def ekspor_evaluasi(
     wb.save(output)
     output.seek(0)
 
-    if id_spk and results:
-        first = results[0]
-        nomor = (first.nomor_spk or "").replace(" ", "-")
-        nama  = (first.nama_spk  or "").replace(" ", "-")
-        tgl   = first.tgl_retail.strftime("%d-%m-%Y") if first.tgl_retail else "tanpa-tanggal"
-        filename = f"Evaluasi-Dokumen_{nomor}-{nama}_{tgl}.xlsx"
-    else:
-        tgl_sekarang = datetime.now().strftime("%d-%m-%Y")
-        filename = f"Evaluasi-Dokumen_{tgl_sekarang}.xlsx"
+    tgl_mulai   = date.fromisoformat(start_date).strftime("%d-%m-%Y") if start_date else "tanpa-tanggal"
+    tgl_selesai = date.fromisoformat(end_date).strftime("%d-%m-%Y")   if end_date   else "tanpa-tanggal"
+    filename = f"Evaluasi-Dokumen_{tgl_mulai}_{tgl_selesai}.xlsx"
 
     return StreamingResponse(
         output,

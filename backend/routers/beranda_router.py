@@ -669,7 +669,7 @@ def download_dokumen(
         tgl = dok.created_at.strftime("%d/%m/%Y") if dok.created_at else "-"
 
         row = [
-            f"D-{str(dok.id).zfill(6)}",
+            dok.id,
             dok.nama_dokumen,
             nama_pengunggah,
             nama_cabang,

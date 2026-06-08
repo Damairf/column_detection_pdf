@@ -27,10 +27,10 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
-          <p class="text-sm text-gray-500">tarik dan unggah file CSV anda</p>
+          <p class="text-sm text-gray-500">tarik dan unggah file XLSX anda</p>
         </div>
 
-        <input ref="fileInputRef" type="file" accept=".csv" class="hidden" @change="handleFileInput" />
+        <input ref="fileInputRef" type="file" accept=".xlsx" class="hidden" @change="handleFileInput" />
 
         <p v-if="uploadError" class="text-red-500 text-sm text-center mb-4">{{ uploadError }}</p>
 
@@ -207,6 +207,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import * as XLSX from 'xlsx'
 
 const router = useRouter()
 
@@ -440,92 +441,92 @@ function warnaHex(warna) {
 function triggerFileInput() { fileInputRef.value?.click() }
 function handleFileInput(e) {
   const file = e.target.files[0]
-  if (file) prosesFile(file)
+  if (file) prosesFileXLSX(file)
   e.target.value = ''
 }
+
 function handleDrop(e) {
   isDragging.value = false
   const file = e.dataTransfer.files[0]
-  if (file) prosesFile(file)
+  if (file) prosesFileXLSX(file)
 }
 
-async function prosesFile(file) {
+async function prosesFileXLSX(file) {
   uploadError.value = ''
-  if (!file.name.toLowerCase().endsWith('.csv')) {
-    uploadError.value = 'File harus berformat CSV.'
+
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    uploadError.value = 'File harus berformat XLSX.'
     return
   }
+
   isUploading.value = true
-  
+
   const reader = new FileReader()
   reader.onload = async (e) => {
     try {
-      const text = e.target.result
-      const rows = text.split(/\r?\n/).filter(row => row.trim() !== '')
-      
+      const data     = new Uint8Array(e.target.result)
+      const workbook = XLSX.read(data, { type: 'array' })
+      const sheet    = workbook.Sheets[workbook.SheetNames[0]]
+      const rows     = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+      const dataRows = rows.filter(row => row.length >= 7 && row[0])
+
+      if (dataRows.length === 0) {
+        uploadError.value = 'File kosong atau format tidak sesuai.'
+        isUploading.value = false
+        return
+      }
+
       const newColumns = []
-      let isValid = true
-      
-      const token = localStorage.getItem('token')
-      const rawData = sessionStorage.getItem(SS_KEY)
-      const dataJson = rawData ? JSON.parse(rawData) : {}
-      const resWidth = dataJson.resolusi_width || 0
-      const resHeight = dataJson.resolusi_height || 0
+      const token      = localStorage.getItem('token')
+      const rawData    = sessionStorage.getItem(SS_KEY)
+      const dataJson   = rawData ? JSON.parse(rawData) : {}
+      const resWidth   = dataJson.resolusi_width  || 0
+      const resHeight  = dataJson.resolusi_height || 0
 
-      for (const row of rows) {
-        const cols = row.split(',')
-        if (cols.length !== 7) {
-          isValid = false
-          break
-        }
-
+      for (const cols of dataRows) {
         const res = await axios.post('/api/template/simpan-kolom-sementara', {
-          nama_kolom: cols[0].trim(),
-          halaman: parseInt(cols[1]) || 1,
-          x1: parseInt(cols[2]) || 0,
-          y1: parseInt(cols[3]) || 0,
-          x2: parseInt(cols[4]) || 0,
-          y2: parseInt(cols[5]) || 0,
-          warna: cols[6].trim() || 'green',
-          resolusi_width: resWidth,
+          nama_kolom:      String(cols[0]).trim(),
+          halaman:         parseInt(cols[1]) || 1,
+          x1:              parseInt(cols[2]) || 0,
+          y1:              parseInt(cols[3]) || 0,
+          x2:              parseInt(cols[4]) || 0,
+          y2:              parseInt(cols[5]) || 0,
+          warna:           String(cols[6]).trim() || 'green',
+          resolusi_width:  resWidth,
           resolusi_height: resHeight
         }, {
           headers: { Authorization: `Bearer ${token}` }
         })
 
         newColumns.push({
-          kolom_id: res.data.kolom_id,
-          nama_kolom: cols[0].trim(),
-          halaman: parseInt(cols[1]) || 1,
-          x1: parseInt(cols[2]) || 0,
-          y1: parseInt(cols[3]) || 0,
-          x2: parseInt(cols[4]) || 0,
-          y2: parseInt(cols[5]) || 0,
-          warna: cols[6].trim() || 'green'
+          kolom_id:   res.data.kolom_id,
+          nama_kolom: String(cols[0]).trim(),
+          halaman:    parseInt(cols[1]) || 1,
+          x1:         parseInt(cols[2]) || 0,
+          y1:         parseInt(cols[3]) || 0,
+          x2:         parseInt(cols[4]) || 0,
+          y2:         parseInt(cols[5]) || 0,
+          warna:      String(cols[6]).trim() || 'green'
         })
       }
-      
-      if (!isValid) {
-        uploadError.value = 'File csv tidak sesuai'
-        return
-      }
-      
-      kolomList.value = [...kolomList.value, ...newColumns]
 
-      dataJson.kolomList = kolomList.value
+      kolomList.value      = [...kolomList.value, ...newColumns]
+      dataJson.kolomList   = kolomList.value
       sessionStorage.setItem(SS_KEY, JSON.stringify(dataJson))
-      
       showUploadModal.value = false
+
     } catch (err) {
-      uploadError.value = 'Gagal memproses file CSV.'
+      uploadError.value = 'Gagal memproses file XLSX.'
     } finally {
       isUploading.value = false
     }
   }
+
   reader.onerror = () => {
     uploadError.value = 'Gagal membaca file.'
     isUploading.value = false
   }
-  reader.readAsText(file)
+
+  reader.readAsArrayBuffer(file)
 }
 </script>

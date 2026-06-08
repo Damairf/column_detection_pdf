@@ -225,7 +225,7 @@
           </button>
 
           <button
-            @click="downloadCSV"
+            @click="downloadXLSX"
             class="w-full px-5 py-3 cursor-pointer border border-gray-300 bg-white text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
           >
             Kolom Template
@@ -254,6 +254,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import * as XLSX from 'xlsx'
 
 const router = useRouter()
 const route  = useRoute()
@@ -324,28 +325,28 @@ async function handleDelete() {
   }
 }
 
-function downloadCSV() {
+function downloadXLSX() {
   if (!template.value || !template.value.kolom || template.value.kolom.length === 0) {
     alert('Tidak ada kolom template untuk diunduh.')
     return
   }
 
-  const csvRows = template.value.kolom.map(k => {
-    return `${k.nama_kolom},${k.halaman},${k.x1},${k.y1},${k.x2},${k.y2},${k.type}`
-  })
+  const wsData = template.value.kolom.map(k => ({
+    nama_kolom: k.nama_kolom,
+    halaman:    k.halaman,
+    x1:         k.x1,
+    y1:         k.y1,
+    x2:         k.x2,
+    y2:         k.y2,
+    type:       k.type
+  }))
 
-  const csvString = csvRows.join('\n')
-  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
-  const url = window.URL.createObjectURL(blob)
-  
-  const link = document.createElement('a')
-  link.href = url
-  link.setAttribute('download', `Kolom_${template.value.nama_template || 'Template'}.csv`)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  window.URL.revokeObjectURL(url)
-  
+  const ws = XLSX.utils.json_to_sheet(wsData, { skipHeader: true })
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Kolom')
+
+  XLSX.writeFile(wb, `Kolom_${template.value.nama_template || 'Template'}.xlsx`)
+
   showDownloadModal.value = false
 }
 
