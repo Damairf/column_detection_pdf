@@ -132,12 +132,30 @@
                 <input
                   v-model="templateSearch"
                   type="text"
-                  placeholder="Cari template...."
+                  placeholder="Cari template, tekan Enter untuk mencari..."
                   class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50"
+                  @keydown.enter.prevent="submitTemplateSearch"
                 />
               </div>
-              <div class="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-gray-50">
-                <label v-for="t in filteredTemplates" :key="t.id" class="flex items-center gap-2 mb-2 cursor-pointer">
+
+              <div
+                v-if="!templateSearchSubmitted"
+                class="border border-gray-300 rounded-lg p-3 bg-gray-50 text-sm text-gray-400 text-center"
+              >
+                Belum ada template dipilih.
+              </div>
+
+              <div
+                v-else
+                class="overflow-y-auto border border-gray-300 rounded-lg p-2 bg-gray-50"
+                style="max-height: calc(5 * 2.25rem);"
+              >
+                <label
+                  v-for="t in filteredTemplates"
+                  :key="t.id"
+                  class="flex items-center gap-2 cursor-pointer rounded px-1 hover:bg-gray-100"
+                  style="height: 2.25rem;"
+                >
                   <input
                     type="radio"
                     :value="t.id"
@@ -145,7 +163,7 @@
                     name="template"
                     class="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
                   />
-                  <span class="text-sm text-gray-700">{{ t.nama_template }}</span>
+                  <span class="text-sm text-gray-700 truncate">{{ t.nama_template }}</span>
                 </label>
                 <div v-if="filteredTemplates.length === 0" class="text-sm text-gray-400 text-center py-2">
                   Tidak ada template ditemukan.
@@ -303,6 +321,11 @@ const sortOptions = [
 const showModal = ref(false)
 const saving = ref(false)
 const templateSearch = ref('')
+const templateSearchSubmitted = ref(false)
+
+function submitTemplateSearch() {
+  templateSearchSubmitted.value = true
+}
 
 const filteredTemplates = computed(() => {
   const q = templateSearch.value.toLowerCase().trim()
@@ -537,6 +560,7 @@ function openAddModal() {
   form.value = { id: '', nama_spk: '', tgl_retail: '', template_ids: [] }
   formError.value = ''
   templateSearch.value = ''
+  templateSearchSubmitted.value = false
   showModal.value = true
 }
 
