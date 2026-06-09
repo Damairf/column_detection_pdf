@@ -209,15 +209,21 @@
       <!-- Info SPK yang dipilih -->
       <div class="mb-4">
         <div
-          class="px-4 py-2.5 border rounded-lg text-sm text-center transition-all"
-          :class="spkDipilihObj
-            ? 'border-gray-300 bg-white text-gray-700'
-            : 'border-gray-200 bg-gray-50 text-gray-400'"
+          v-if="!spkDipilihObj"
+          class="px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-lg text-sm text-center text-gray-400"
         >
-          <span v-if="spkDipilihObj">
-            {{ spkDipilihObj.id }} &mdash; {{ spkDipilihObj.nama_spk }} &mdash; {{ formatTanggal(spkDipilihObj.tgl_retail) }}
-          </span>
-          <span v-else>Belum ada SPK yang dipilih</span>
+          Belum ada SPK yang dipilih
+        </div>
+        <div v-else class="grid grid-cols-3 gap-3">
+          <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none truncate">
+            {{ spkDipilihObj.id }}
+          </div>
+          <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none truncate">
+            {{ spkDipilihObj.nama_spk }}
+          </div>
+          <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
+            {{ formatTanggal(spkDipilihObj.tgl_retail) }}
+          </div>
         </div>
       </div>
 
@@ -383,8 +389,12 @@ async function fetchSPKList() {
 }
 
 function pilihSPK(s) {
-  spkDipilih.value = s.id
-  errorSPK.value   = ''
+  spkDipilih.value  = s.id
+  errorSPK.value    = ''
+  sudahCari.value   = false
+  queryDicari.value = ''
+  searchSPK.value   = ''
+  spkPageRef.value  = 1
 }
 
 function formatTanggal(iso) {
