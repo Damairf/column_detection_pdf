@@ -83,7 +83,8 @@
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama Dokumen</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Pengunggah</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Cabang</th>
-              <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama Template</th>
+              <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nomor SPK</th>
+              <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama SPK</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Tanggal</th>
               <th v-if="user.role === 'admin'" class="px-5 py-3.5 text-center font-semibold text-gray-700 w-28">Status</th>
               <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Detail</th>
@@ -92,7 +93,7 @@
           <tbody>
 
             <tr v-if="loading">
-              <td :colspan="user.role === 'admin' ? 8 : 7" class="px-5 py-10 text-center text-gray-400 text-sm">
+              <td :colspan="user.role === 'admin' ? 9 : 8" class="px-5 py-10 text-center text-gray-400 text-sm">
                 <div class="flex items-center justify-center gap-2">
                   <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -104,7 +105,7 @@
             </tr>
 
             <tr v-else-if="errorMsg">
-              <td :colspan="user.role === 'admin' ? 8 : 7" class="px-5 py-10 text-center text-red-400 text-sm">{{ errorMsg }}</td>
+              <td :colspan="user.role === 'admin' ? 9 : 8" class="px-5 py-10 text-center text-red-400 text-sm">{{ errorMsg }}</td>
             </tr>
 
             <tr
@@ -113,18 +114,18 @@
               :key="row.id"
               class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
             >
-              <td class="px-5 py-3 text-center text-gray-700 font-mono text-xs">{{ (row.id) }}</td>
+              <td class="px-5 py-3 text-center text-gray-700">{{ row.id }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_dokumen }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.pengunggah || '—' }}</td>
               <td class="px-5 py-3 text-center text-gray-700">{{ row.cabang || '—' }}</td>
-              <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_template || '—' }}</td>
+              <td class="px-5 py-3 text-center text-gray-700">{{ row.id_spk || '—' }}</td>
+              <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_spk || '—' }}</td>
               <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(row.created_at) }}</td>
               <td v-if="user.role === 'admin'" class="px-5 py-3 text-center">
                 <span
                   class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
                   :class="badgeClass(row.status)"
                 >
-                  <!-- Spinner Memuat -->
                   <svg v-if="row.status === 'Memuat'" class="animate-spin h-3 w-3"
                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-30" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -144,7 +145,7 @@
             </tr>
 
             <tr v-if="!loading && !errorMsg && paginatedData.length === 0">
-              <td :colspan="user.role === 'admin' ? 8 : 7" class="px-5 py-10 text-center text-gray-400 text-sm">
+              <td :colspan="user.role === 'admin' ? 9 : 8" class="px-5 py-10 text-center text-gray-400 text-sm">
                 Tidak ada data ditemukan.
               </td>
             </tr>
@@ -155,7 +156,6 @@
       <!-- Pagination -->
       <div class="flex items-center justify-center gap-2 py-5 border-t border-gray-100">
 
-        <!-- Max Prev -->
         <button
           @click="goToPage(1)"
           :disabled="currentPage === 1"
@@ -167,7 +167,6 @@
           </svg>
         </button>
 
-        <!-- Prev -->
         <button
           @click="goToPage(currentPage - 1)"
           :disabled="currentPage === 1"
@@ -179,7 +178,6 @@
           </svg>
         </button>
 
-        <!-- Input halaman -->
         <input
           type="number" :value="currentPage"
           @change="onPageInputChange" @keydown.enter="onPageInputChange"
@@ -187,7 +185,6 @@
           class="w-12 h-9 text-center border border-gray-300 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
 
-        <!-- Next -->
         <button
           @click="goToPage(currentPage + 1)"
           :disabled="currentPage === totalPages || totalPages === 0"
@@ -199,7 +196,6 @@
           </svg>
         </button>
 
-        <!-- Max Next -->
         <button
           @click="goToPage(totalPages)"
           :disabled="currentPage === totalPages || totalPages === 0"
@@ -212,8 +208,9 @@
         </button>
 
       </div>
-      
+
     </div>
+
     <!-- Footer Warning -->
     <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
       Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
@@ -291,7 +288,6 @@ const sortOptions = [
   { label: 'Tanggal (Menaik)',  value: 'tgl-asc'  },
 ]
 
-// Fetch data
 async function fetchData(silent = false) {
   if (!silent) loading.value = true
   errorMsg.value = ''
@@ -328,31 +324,29 @@ function startPollingIfNeeded() {
   }
 }
 
-// Format helpers
 function formatTanggal(iso) {
   if (!iso) return '-'
   const d = new Date(iso)
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-// Status dari backend: "Benar" | "Salah" | "Memuat" | "Error"
 function badgeClass(status) {
   switch (status) {
-    case 'Benar':   return 'bg-green-100 text-green-700'
-    case 'Salah':   return 'bg-red-100 text-red-600'
+    case 'Benar':  return 'bg-green-100 text-green-700'
+    case 'Salah':  return 'bg-red-100 text-red-600'
     case 'Memuat': return 'bg-gray-100 text-gray-500'
-    case 'Error':   return 'bg-orange-100 text-orange-600'
-    default:        return 'bg-gray-100 text-gray-500'
+    case 'Error':  return 'bg-orange-100 text-orange-600'
+    default:       return 'bg-gray-100 text-gray-500'
   }
 }
 
 function labelStatus(status) {
   switch (status) {
-    case 'Benar':   return 'Benar'
-    case 'Salah':   return 'Salah'
+    case 'Benar':  return 'Benar'
+    case 'Salah':  return 'Salah'
     case 'Memuat': return 'Memuat'
-    case 'Error':   return 'Error'
-    default:        return status || '—'
+    case 'Error':  return 'Error'
+    default:       return status || '—'
   }
 }
 
@@ -360,11 +354,12 @@ const filteredData = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   if (!q) return allData.value
   return allData.value.filter(row =>
-    String(row.id).toLowerCase().includes(q) ||
-    row.nama_dokumen?.toLowerCase().includes(q) ||
-    row.pengunggah?.toLowerCase().includes(q) ||
-    row.nama_template?.toLowerCase().includes(q) ||
-    formatTanggal(row.created_at).includes(q) ||
+    String(row.id).toLowerCase().includes(q)       ||
+    row.nama_dokumen?.toLowerCase().includes(q)    ||
+    row.pengunggah?.toLowerCase().includes(q)      ||
+    row.id_spk?.toLowerCase().includes(q)          ||
+    row.nama_spk?.toLowerCase().includes(q)        ||
+    formatTanggal(row.created_at).includes(q)      ||
     row.status?.toLowerCase().includes(q)
   )
 })
@@ -388,7 +383,6 @@ const paginatedData = computed(() => {
   return sortedData.value.slice(start, start + itemsPerPage)
 })
 
-// Sort
 let hideTimeout = null
 function handleMouseEnter() {
   if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null }
@@ -403,7 +397,6 @@ function selectSort(value) {
   currentPage.value = 1
 }
 
-// Pagination
 function goToPage(page) { currentPage.value = Math.max(1, Math.min(page, totalPages.value)) }
 function onPageInputChange(e) {
   const val = parseInt(e.target.value)
@@ -416,7 +409,6 @@ function lihatDetail(id) { router.push(`/beranda/detail/${id}`) }
 async function handleDownload() {
   errorStartDate.value = !downloadStartDate.value
   errorEndDate.value   = !downloadEndDate.value
-
   if (errorStartDate.value || errorEndDate.value) return
 
   isDownloading.value = true
@@ -431,21 +423,17 @@ async function handleDownload() {
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const link = document.createElement('a')
     link.href = url
-    
-    const formatTanggal = (iso) => {
+
+    const fmt = (iso) => {
       if (!iso) return ''
       const parts = iso.split('-')
-      if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`
-      return iso
+      return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : iso
     }
-    const tglMulai = formatTanggal(downloadStartDate.value)
-    const tglSelesai = formatTanggal(downloadEndDate.value)
-    
-    let filename = `Dokumen_${tglMulai}_${tglSelesai}.xlsx`
+    let filename = `Dokumen_${fmt(downloadStartDate.value)}_${fmt(downloadEndDate.value)}.xlsx`
     const disposition = res.headers['content-disposition']
-    if (disposition && disposition.includes('filename=')) {
+    if (disposition?.includes('filename=')) {
       const match = disposition.match(/filename="?([^"]+)"?/)
-      if (match && match[1]) filename = match[1]
+      if (match?.[1]) filename = match[1]
     }
 
     link.setAttribute('download', filename)
@@ -453,7 +441,6 @@ async function handleDownload() {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-
     closeDownloadModal()
   } catch (err) {
     console.error('Gagal mendownload data:', err)
@@ -465,10 +452,10 @@ async function handleDownload() {
 
 function closeDownloadModal() {
   showDownloadModal.value = false
-  errorStartDate.value = false
-  errorEndDate.value = false
+  errorStartDate.value    = false
+  errorEndDate.value      = false
   downloadStartDate.value = ''
-  downloadEndDate.value = ''
+  downloadEndDate.value   = ''
 }
 
 watch(downloadStartDate, (newVal) => {
@@ -478,7 +465,6 @@ watch(downloadStartDate, (newVal) => {
 })
 
 watch(searchQuery, () => { currentPage.value = 1 })
-
 watch(allData, () => startPollingIfNeeded(), { deep: false })
 
 onMounted(async () => {

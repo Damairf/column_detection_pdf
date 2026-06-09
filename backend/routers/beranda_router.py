@@ -256,7 +256,7 @@ def get_dokumen_list(
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
-
+ 
     query = (
         db.query(
             models.Dokumen.id,
@@ -264,6 +264,7 @@ def get_dokumen_list(
             models.Dokumen.status,
             models.Dokumen.path_dokumen,
             models.Dokumen.id_template,
+            models.Dokumen.id_spk,
             models.User.nama.label("pengunggah"),
             (
                 select(models.Cabang.nama_cabang)
@@ -277,19 +278,25 @@ def get_dokumen_list(
                 .correlate(models.Dokumen)
                 .scalar_subquery()
             ).label("nama_template"),
+            (
+                select(models.SPK.nama_spk)
+                .where(models.SPK.id == models.Dokumen.id_spk)
+                .correlate(models.Dokumen)
+                .scalar_subquery()
+            ).label("nama_spk"),
             models.Dokumen.created_at,
         )
         .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
     )
-
+ 
     if user.role != "admin":
         query = query.filter(models.Dokumen.id_user == user_id)
-        
+ 
     if id_spk:
         query = query.filter(models.Dokumen.id_spk == id_spk)
-
+ 
     results = query.order_by(models.Dokumen.created_at.desc()).all()
-
+ 
     return [
         {
             "id":            row.id,
@@ -300,6 +307,8 @@ def get_dokumen_list(
             "path_dokumen":  row.path_dokumen,
             "id_template":   row.id_template,
             "nama_template": row.nama_template,
+            "id_spk":        row.id_spk,
+            "nama_spk":      row.nama_spk,
             "created_at":    row.created_at,
         }
         for row in results
@@ -466,13 +475,13 @@ def get_dokumen_detail(
     user_id: int = Depends(get_current_user_id)
 ):
     user = db.query(models.User).filter(models.User.id == user_id).first()
-    
+ 
     query = db.query(models.Dokumen).filter(models.Dokumen.id == dokumen_id)
     if user and user.role != "admin":
         query = query.filter(models.Dokumen.id_user == user_id)
-        
+ 
     dok = query.first()
-
+ 
     if not dok:
         raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan.")
 
@@ -481,9 +490,15 @@ def get_dokumen_detail(
     ).first()
     nama_template = template.nama_template if template else None
 
+    nama_spk = None
+    if dok.id_spk:
+        spk_obj = db.query(models.SPK).filter(models.SPK.id == dok.id_spk).first()
+        if spk_obj:
+            nama_spk = spk_obj.nama_spk
+
     image_folder = dok.path_dokumen or ""
     folder_name  = os.path.basename(image_folder.rstrip("/\\"))
-
+ 
     pdf_path = ""
     pdf_dir  = "storage/dokumen/pdf"
     if folder_name and os.path.isdir(pdf_dir):
@@ -503,7 +518,7 @@ def get_dokumen_detail(
         .order_by(models.KolomTemplate.halaman, models.KolomTemplate.id)
         .all()
     )
-
+ 
     hasil_list = [
         {
             "id_kolom":   kolom.id,
@@ -517,12 +532,12 @@ def get_dokumen_detail(
         }
         for hasil, kolom in hasil_rows
     ]
-
+ 
     if not hasil_list and dok.status == "Memuat" and dok.id_template:
         koloms = db.query(models.KolomTemplate).filter(
             models.KolomTemplate.id_template == dok.id_template
         ).order_by(models.KolomTemplate.halaman, models.KolomTemplate.id).all()
-
+ 
         hasil_list = [
             {
                 "id_kolom":   k.id,
@@ -536,16 +551,18 @@ def get_dokumen_detail(
             }
             for k in koloms
         ]
-
+ 
     pengunggah = db.query(models.User).filter(models.User.id == dok.id_user).first()
     nama_pengunggah = pengunggah.nama if pengunggah else "Tidak diketahui"
-
+ 
     return {
         "dokumen": {
             "id":            dok.id,
             "nama_dokumen":  dok.nama_dokumen,
             "pengunggah":    nama_pengunggah,
             "nama_template": nama_template,
+            "id_spk":        dok.id_spk,
+            "nama_spk":      nama_spk,
             "status":        dok.status,
             "path_pdf":      pdf_path,
             "path_dokumen":  dok.path_dokumen,

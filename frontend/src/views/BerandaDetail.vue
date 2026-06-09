@@ -43,8 +43,9 @@
             Download
           </button>
 
-          <!-- Tombol Hapus -->
+          <!-- Tombol Hapus — hanya admin -->
           <button
+            v-if="user.role === 'admin'"
             @click="showDeleteModal = true"
             class="cursor-pointer px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg
                    hover:bg-red-700 transition shadow-sm"
@@ -76,6 +77,22 @@
               <label class="block text-sm font-semibold text-gray-700 mb-2">Pengunggah</label>
               <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
                 {{ detail.pengunggah || '—' }}
+              </div>
+            </div>
+
+            <!-- Nomor SPK -->
+            <div class="mb-5">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Nomor SPK</label>
+              <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
+                {{ detail.id_spk || '—' }}
+              </div>
+            </div>
+
+            <!-- Nama SPK -->
+            <div class="mb-5">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Nama SPK</label>
+              <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
+                {{ detail.nama_spk || '—' }}
               </div>
             </div>
 
@@ -147,7 +164,6 @@
         <!-- Tabel Hasil Deteksi Kolom -->
         <div v-if="user.role === 'admin'" class="p-7">
 
-          <!-- Loading hasil deteksi -->
           <div v-if="detail.status === 'Memuat'" class="flex items-center gap-2 text-gray-400 text-sm mb-4">
             <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -156,7 +172,6 @@
             Proses deteksi sedang berjalan...
           </div>
 
-          <!-- Peringatan Error -->
           <div v-if="detail.status === 'Error'" class="flex items-center gap-3 px-4 py-3 mb-4 bg-orange-50 border border-orange-200 rounded-lg text-orange-700 text-sm">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -214,21 +229,18 @@
     <!-- Modal Konfirmasi Hapus -->
     <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div class="bg-white rounded-2xl w-full max-w-md p-6 text-center shadow-lg">
-
         <div class="flex justify-center mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-1-3H10a1 1 0 00-1 1v1h6V5a1 1 0 00-1-1z" />
           </svg>
         </div>
-
         <h2 class="text-lg font-semibold text-gray-800 mb-2">
           Apakah anda yakin ingin menghapusnya?
         </h2>
         <p class="text-sm text-gray-500 mb-6">
           Data yang sudah dihapus tidak dapat dipulihkan kembali
         </p>
-
         <div class="flex justify-center gap-3">
           <button
             @click="showDeleteModal = false"
@@ -250,8 +262,6 @@
         </div>
       </div>
     </div>
-
-
 
     <!-- Footer Warning -->
     <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
@@ -282,8 +292,8 @@ const detail       = ref({})
 const hasilDeteksi = ref([])
 const loading      = ref(false)
 const errorMsg     = ref('')
-const showDeleteModal    = ref(false)
-const deleting           = ref(false)
+const showDeleteModal = ref(false)
+const deleting        = ref(false)
 
 const pdfUrl = computed(() => {
   const path = detail.value.path_pdf
@@ -297,21 +307,19 @@ const namaFile = computed(() => {
   return path.replace(/\\/g, '/').split('/').pop()
 })
 
-// Format tanggal
 function formatTanggal(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-// Badge status dokumen
 function badgeClass(status) {
   switch (status) {
-    case 'Benar':   return 'bg-green-100 text-green-700'
-    case 'Salah':   return 'bg-red-100 text-red-600'
+    case 'Benar':  return 'bg-green-100 text-green-700'
+    case 'Salah':  return 'bg-red-100 text-red-600'
     case 'Memuat': return 'bg-gray-100 text-gray-500'
-    case 'Error':   return 'bg-orange-100 text-orange-600'
-    default:        return 'bg-gray-100 text-gray-500'
+    case 'Error':  return 'bg-orange-100 text-orange-600'
+    default:       return 'bg-gray-100 text-gray-500'
   }
 }
 function labelStatus(status) {
@@ -319,17 +327,15 @@ function labelStatus(status) {
   return map[status] ?? status ?? '—'
 }
 
-// Status kolom (hasil_deteksi)
 function badgeKolom(status) {
   switch (status) {
     case 'TERISI':  return 'bg-blue-100 text-blue-600'
     case 'KOSONG':  return 'bg-gray-200 text-gray-600'
-    case 'Memuat': return 'bg-gray-100 text-gray-400'
+    case 'Memuat':  return 'bg-gray-100 text-gray-400'
     default:        return 'bg-gray-100 text-gray-400'
   }
 }
 
-// Fetch detail dokumen
 async function fetchDetail(silent = false) {
   if (!silent) loading.value = true
   errorMsg.value = ''
@@ -365,12 +371,8 @@ function startPollingIfNeeded() {
   }
 }
 
-// Download PDF dokumen
 async function downloadPDF() {
-  if (!pdfUrl.value) {
-    alert('File PDF tidak tersedia.')
-    return
-  }
+  if (!pdfUrl.value) { alert('File PDF tidak tersedia.'); return }
   try {
     const res = await axios.get(pdfUrl.value, { responseType: 'blob' })
     const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
@@ -381,8 +383,7 @@ async function downloadPDF() {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-  } catch (err) {
-    console.error('Gagal mendownload:', err)
+  } catch {
     const link = document.createElement('a')
     link.href = pdfUrl.value
     link.setAttribute('download', namaFile.value || 'dokumen.pdf')
@@ -392,7 +393,6 @@ async function downloadPDF() {
   }
 }
 
-// Hapus dokumen
 async function handleDelete() {
   deleting.value = true
   try {

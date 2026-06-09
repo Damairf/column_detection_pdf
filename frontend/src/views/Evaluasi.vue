@@ -126,7 +126,7 @@
                 :key="row.id"
                 class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
               >
-                <td class="px-5 py-3 text-center text-gray-700 font-mono text-sm">{{ (row.id) }}</td>
+                <td class="px-5 py-3 text-center text-gray-700">{{ (row.id) }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ row.nama_dokumen }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ row.pengunggah || '—' }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ row.cabang || '—' }}</td>
