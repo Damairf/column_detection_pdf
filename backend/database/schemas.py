@@ -66,6 +66,7 @@ class SPKBase(BaseModel):
     id: str
     nama_spk: str
     tgl_retail: date
+    status: Optional[str] = "Aktif"
 
 class SPKCreate(SPKBase):
     template_id: Optional[int] = None
@@ -74,6 +75,7 @@ class SPKUpdate(BaseModel):
     nama_spk: Optional[str] = None
     tgl_retail: Optional[date] = None
     template_id: Optional[int] = None
+    status: Optional[str] = None
 
 class TemplateSimple(BaseModel):
     id: int

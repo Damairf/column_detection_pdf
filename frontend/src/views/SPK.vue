@@ -36,6 +36,16 @@
               </button>
             </div>
           </div>
+
+          <button
+            @click="showAktivasiModal = true"
+            class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Aktivasi SPK
+          </button>
           
           <button
             @click="showUploadModal = true"
@@ -65,6 +75,7 @@
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama SPK</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Tanggal Retail</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">ID Template</th>
+                <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Status</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Detail</th>
               </tr>
             </thead>
@@ -80,6 +91,17 @@
                 <td class="px-5 py-3 text-center text-gray-700">{{ spk.nama_spk }}</td>
                 <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(spk.tgl_retail) }}</td>
                 <td class="px-5 py-3 text-center text-gray-500">{{ spk.id_template ?? '—' }}</td>
+                  <td class="px-5 py-3 text-center">
+                    <select
+                      :value="spk.status ?? 'Aktif'"
+                      @change="ubahStatus(spk, $event.target.value)"
+                      class="px-2 py-1 text-sm font-medium rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 cursor-pointer transition"
+                      :class="(spk.status ?? 'Aktif') === 'Aktif'"
+                    >
+                      <option value="Aktif">Aktif</option>
+                      <option value="Nonaktif">Nonaktif</option>
+                    </select>
+                  </td>
                 <td class="px-5 py-3 text-center flex items-center justify-center gap-3">
                   <button @click="lihatDetail(spk.id)" class="text-blue-500 hover:text-blue-700 font-medium hover:underline transition">
                     Detail
@@ -188,40 +210,44 @@
       style="background: rgba(0,0,0,0.35);"
       @click.self="closeUploadModal"
     >
+      <!-- Notifikasi Error Upload -->
       <div
         v-if="uploadError"
-        class="w-full max-w-lg mx-6 px-4 py-3 bg-white rounded-lg text-sm text-red-500 text-center"
+        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
+        style="border-left: 3px solid #9b3a2a;"
       >
-        {{ uploadError }}
+        <span class="text-sm text-gray-700">{{ uploadError }}</span>
       </div>
 
+      <!-- Notifikasi Duplikat Upload -->
       <div
         v-if="uploadDuplikat.length > 0"
-        class="w-full max-w-lg mx-6 px-4 py-3 bg-white rounded-lg text-sm text-red-500 text-center"
+        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
+        style="border-left: 3px solid #8a6d1e;"
       >
-        {{ uploadDuplikat.length }} SPK sudah pernah ditambahkan
+        <span class="text-sm text-gray-700"><strong>{{ uploadDuplikat.length }} SPK</strong> sudah pernah ditambahkan sebelumnya</span>
       </div>
 
+      <!-- Notifikasi Sukses Upload -->
       <div
         v-if="uploadSuccess"
-        class="w-full max-w-lg mx-6 px-4 py-3 bg-white rounded-lg text-sm text-gray-800 text-center"
+        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
+        style="border-left: 3px solid #3d6b28;"
       >
-        {{ uploadSuccess }}
+        <span class="text-sm text-gray-700">{{ uploadSuccess }}</span>
       </div>
 
+      <!-- Progress Upload -->
       <div
         v-if="isUploading"
-        class="w-full max-w-lg mx-6 px-4 py-3 bg-white rounded-lg"
+        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
       >
-        <div class="flex justify-between text-xs text-gray-500 mb-2">
-          <span>Mengupload {{ uploadProgress.current }} / {{ uploadProgress.total }} SPK...</span>
-          <span>{{ uploadProgress.percent }}%</span>
+        <div class="flex justify-between mb-2">
+          <span class="text-xs text-gray-500">Mengunggah {{ uploadProgress.current }} / {{ uploadProgress.total }} SPK...</span>
+          <span class="text-xs text-gray-500">{{ uploadProgress.percent }}%</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
-          <div
-            class="bg-gray-900 h-2 rounded-full transition-all duration-300"
-            :style="{ width: uploadProgress.percent + '%' }"
-          ></div>
+        <div class="w-full bg-gray-200 h-1">
+          <div class="bg-gray-600 h-1 transition-all duration-300" :style="{ width: uploadProgress.percent + '%' }"></div>
         </div>
       </div>
 
@@ -249,14 +275,6 @@
 
         <div class="flex justify-center gap-3">
           <button
-            @click="closeUploadModal"
-            :disabled="isUploading"
-            class="px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm"
-            :class="isUploading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
-          >
-            Tutup
-          </button>
-          <button
             @click.stop="triggerFileInput"
             :disabled="isUploading"
             class="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm"
@@ -268,6 +286,101 @@
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
               Mengunggah...
+            </span>
+            <span v-else class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Unggah file
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Modal Aktivasi SPK -->
+    <div
+      v-if="showAktivasiModal"
+      class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3"
+      style="background: rgba(0,0,0,0.35);"
+      @click.self="closeAktivasiModal"
+    >
+      <!-- Notifikasi Error Aktivasi -->
+      <div
+        v-if="aktivasiError"
+        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
+        style="border-left: 3px solid #9b3a2a;"
+      >
+        <span class="text-sm text-gray-700">{{ aktivasiError }}</span>
+      </div>
+
+      <!-- Notifikasi Tidak Ditemukan Aktivasi -->
+      <div
+        v-if="aktivasiTidakDitemukan.length > 0"
+        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
+        style="border-left: 3px solid #8a6d1e;"
+      >
+        <span class="text-sm text-gray-700"><strong>{{ aktivasiTidakDitemukan.length }} SPK</strong> tidak ditemukan di dalam sistem</span>
+      </div>
+
+      <!-- Notifikasi Sukses Aktivasi -->
+      <div
+        v-if="aktivasiSuccess"
+        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
+        style="border-left: 3px solid #3d6b28;"
+      >
+        <span class="text-sm text-gray-700">{{ aktivasiSuccess }}</span>
+      </div>
+
+      <!-- Progress Aktivasi -->
+      <div
+        v-if="isAktivasi"
+        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
+      >
+        <div class="flex justify-between mb-2">
+          <span class="text-xs text-gray-500">Mengunggah {{ aktivasiProgress.current }} / {{ aktivasiProgress.total }} SPK...</span>
+          <span class="text-xs text-gray-500">{{ aktivasiProgress.percent }}%</span>
+        </div>
+        <div class="w-full bg-gray-200 h-1">
+          <div class="bg-gray-600 h-1 transition-all duration-300" :style="{ width: aktivasiProgress.percent + '%' }"></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-6 p-8">
+        <div
+          class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-14 px-6 mb-6 transition-colors cursor-pointer"
+          :class="isAktivasiDragging
+            ? 'border-gray-500 bg-gray-100'
+            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
+          @dragover.prevent="isAktivasiDragging = true"
+          @dragleave.prevent="isAktivasiDragging = false"
+          @drop.prevent="handleAktivasiDrop"
+          @click="triggerAktivasiFileInput"
+        >
+          <div class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          <p class="text-sm text-gray-500">Tarik dan unggah file XLSX anda</p>
+          <p class="text-xs text-gray-400 mt-1">Format: Nomor SPK, Nama SPK, Tanggal Retail, Status</p>
+          <p class="text-xs text-gray-400 mt-0.5">(Status: 1 = Aktif dan 0 = Nonaktif)</p>
+        </div>
+
+        <input ref="aktivasiFileInputRef" type="file" accept=".xlsx" class="hidden" @change="handleAktivasiFileInput" />
+
+        <div class="flex justify-center gap-3">
+          <button
+            @click.stop="triggerAktivasiFileInput"
+            :disabled="isAktivasi"
+            class="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm"
+            :class="isAktivasi ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
+          >
+            <span v-if="isAktivasi" class="flex items-center gap-2">
+              <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Memproses...
             </span>
             <span v-else class="flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -304,6 +417,15 @@ const uploadSuccess = ref('')
 const uploadDuplikat = ref([])
 const fileInputRef    = ref(null)
 const uploadProgress  = ref({ current: 0, total: 0, percent: 0 })
+
+const showAktivasiModal      = ref(false)
+const isAktivasiDragging     = ref(false)
+const isAktivasi             = ref(false)
+const aktivasiError          = ref('')
+const aktivasiSuccess        = ref('')
+const aktivasiTidakDitemukan = ref([])
+const aktivasiFileInputRef   = ref(null)
+const aktivasiProgress       = ref({ current: 0, total: 0, percent: 0 })
 
 const searchQuery = ref('')
 const currentPage = ref(1)
@@ -342,6 +464,20 @@ const currentUser = computed(() => {
 const form = ref({ id: '', nama_spk: '', tgl_retail: '', template_id: null })
 
 function lihatDetail(id) { router.push(`/spk/detail/${id}`) }
+
+async function ubahStatus(spk, nilaiBaru) {
+  const statusLama = spk.status
+  spk.status = nilaiBaru
+  try {
+    const token = localStorage.getItem('token')
+    await axios.patch(`/api/spk/${spk.id}/status`, { status: nilaiBaru }, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+  } catch (err) {
+    spk.status = statusLama
+    alert('Gagal mengubah status SPK.')
+  }
+}
 
 async function fetchSPK() {
   loading.value = true
@@ -566,6 +702,125 @@ function openAddModal() {
 
 function closeModal() {
   showModal.value = false
+}
+
+function closeAktivasiModal() {
+  if (isAktivasi.value) return
+  showAktivasiModal.value      = false
+  aktivasiError.value          = ''
+  aktivasiSuccess.value        = ''
+  aktivasiTidakDitemukan.value = []
+  isAktivasiDragging.value     = false
+  aktivasiProgress.value       = { current: 0, total: 0, percent: 0 }
+}
+
+function triggerAktivasiFileInput() {
+  aktivasiFileInputRef.value?.click()
+}
+
+function handleAktivasiFileInput(e) {
+  const file = e.target.files[0]
+  if (file) prosesAktivasiXLSX(file)
+  e.target.value = ''
+}
+
+function handleAktivasiDrop(e) {
+  isAktivasiDragging.value = false
+  const file = e.dataTransfer.files[0]
+  if (file) prosesAktivasiXLSX(file)
+}
+
+async function prosesAktivasiXLSX(file) {
+  aktivasiError.value          = ''
+  aktivasiSuccess.value        = ''
+  aktivasiTidakDitemukan.value = []
+
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    aktivasiError.value = 'File harus berformat XLSX.'
+    return
+  }
+
+  isAktivasi.value = true
+
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const data     = new Uint8Array(e.target.result)
+      const workbook = XLSX.read(data, { type: 'array' })
+      const sheet    = workbook.Sheets[workbook.SheetNames[0]]
+      const rows     = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+
+      const dataRows = rows.slice(1).filter(row =>
+        row.length >= 4 && row[0] && row[3] !== undefined && row[3] !== ''
+      )
+
+      if (dataRows.length === 0) {
+        aktivasiError.value = 'File kosong atau format tidak sesuai.'
+        isAktivasi.value    = false
+        return
+      }
+
+      const token         = localStorage.getItem('token')
+      let berhasil        = 0
+      let gagal           = 0
+      const tidakDitemukan = []
+      const pesanGagal    = []
+
+      aktivasiProgress.value = { current: 0, total: dataRows.length, percent: 0 }
+
+      for (let i = 0; i < dataRows.length; i++) {
+        const row      = dataRows[i]
+        const nomorSPK = String(row[0]).trim()
+
+        const statusBaru = String(row[3]).trim() === '1' ? 'Aktif' : 'Nonaktif'
+
+        try {
+          await axios.patch(`/api/spk/${nomorSPK}/status`, { status: statusBaru }, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          berhasil++
+        } catch (err) {
+          if (err.response?.status === 404) {
+            tidakDitemukan.push(nomorSPK)
+          } else {
+            gagal++
+            const detail = err.response?.data?.detail || 'Error tidak diketahui'
+            pesanGagal.push(`Baris ${i + 2} (${nomorSPK}): ${detail}`)
+          }
+        }
+
+        aktivasiProgress.value = {
+          current: i + 1,
+          total:   dataRows.length,
+          percent: Math.round(((i + 1) / dataRows.length) * 100)
+        }
+      }
+
+      if (berhasil > 0) {
+        aktivasiSuccess.value = `${berhasil} SPK berhasil diperbarui statusnya.`
+      }
+      if (tidakDitemukan.length > 0) {
+        aktivasiTidakDitemukan.value = tidakDitemukan
+      }
+      if (gagal > 0) {
+        aktivasiError.value = `${gagal} SPK gagal diproses: ${pesanGagal.join(' | ')}`
+      }
+
+      fetchSPK()
+
+    } catch (err) {
+      aktivasiError.value = 'Gagal memproses file XLSX. Pastikan format sesuai.'
+    } finally {
+      isAktivasi.value = false
+    }
+  }
+
+  reader.onerror = () => {
+    aktivasiError.value = 'Gagal membaca file.'
+    isAktivasi.value    = false
+  }
+
+  reader.readAsArrayBuffer(file)
 }
 
 async function handleSimpan() {

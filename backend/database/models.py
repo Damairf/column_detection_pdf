@@ -102,6 +102,7 @@ class SPK(Base):
     nama_spk = Column(String)
     tgl_retail = Column(Date)
     id_template = Column(Integer, ForeignKey("template.id"), nullable=True)
+    status = Column(String, default="Aktif")
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     template = relationship("Template", backref="spks")

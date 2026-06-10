@@ -294,7 +294,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
@@ -334,9 +334,12 @@ const filteredSPK = computed(() => {
   const q = queryDicari.value.toLowerCase().trim()
   if (!q) return []
   return spkList.value.filter(s =>
-    s.id.toLowerCase().includes(q) ||
-    s.nama_spk.toLowerCase().includes(q) ||
-    formatTanggal(s.tgl_retail).includes(q)
+    (s.status ?? 'Aktif') === 'Aktif' &&
+    (
+      s.id.toLowerCase().includes(q) ||
+      s.nama_spk.toLowerCase().includes(q) ||
+      formatTanggal(s.tgl_retail).includes(q)
+    )
   )
 })
 
@@ -520,4 +523,5 @@ async function handleSimpan() {
 }
 
 onMounted(() => fetchSPKList())
+onActivated(() => fetchSPKList())
 </script>

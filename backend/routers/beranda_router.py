@@ -407,7 +407,7 @@ def get_spk_tersedia(
 
     exclude_ids = {row.id_spk for row in spk_sudah_upload}
 
-    spks = db.query(models.SPK).all()
+    spks = db.query(models.SPK).filter(models.SPK.status == "Aktif").all()
 
     return [
         {
@@ -415,6 +415,7 @@ def get_spk_tersedia(
             "nama_spk":    s.nama_spk,
             "tgl_retail":  s.tgl_retail,
             "id_template": s.id_template,
+            "status":      s.status,
         }
         for s in spks
         if s.id not in exclude_ids
