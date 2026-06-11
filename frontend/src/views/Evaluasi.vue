@@ -404,6 +404,8 @@ const sortOptions = [
   { label: 'ID (Menaik)',       value: 'id-asc'   },
   { label: 'Tanggal (Menurun)', value: 'tgl-desc' },
   { label: 'Tanggal (Menaik)',  value: 'tgl-asc'  },
+  { label: 'Skor (Menurun)',    value: 'skor-desc' },
+  { label: 'Skor (Menaik)',     value: 'skor-asc'  },
 ]
 
 let hideTimeout = null
@@ -552,12 +554,14 @@ async function fetchEvaluasi() {
   try {
     const token  = localStorage.getItem('token')
     const params = new URLSearchParams()
+    appliedCabangIds.value.forEach(id => params.append('cabang_ids', id))
     if (appliedStartDate.value) params.append('start_date', appliedStartDate.value)
     if (appliedEndDate.value)   params.append('end_date',   appliedEndDate.value)
 
-    const res   = await axios.get(`/api/evaluasi/?${params.toString()}`, {
+    const res = await axios.get(`/api/evaluasi/?${params.toString()}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
+
     items.value = res.data
   } catch (err) {
     errorMsg.value = err.response?.status === 403
@@ -571,24 +575,18 @@ async function fetchEvaluasi() {
 const filteredData = computed(() => {
   let data = items.value
 
-  if (appliedCabangIds.value.length > 0) {
-    const namaCabangSet = new Set(
-      listCabang.value
-        .filter(c => appliedCabangIds.value.includes(c.id))
-        .map(c => c.nama_cabang)
-    )
-    data = data.filter(row => namaCabangSet.has(row.cabang))
-  }
-
   const q = searchQuery.value.toLowerCase().trim()
   if (q) {
     data = data.filter(row =>
-      (row.id).toLowerCase().includes(q)        ||
+      String(row.id).toLowerCase().includes(q)           ||
       (row.nama_dokumen || '').toLowerCase().includes(q) ||
       (row.pengunggah   || '').toLowerCase().includes(q) ||
       (row.cabang       || '').toLowerCase().includes(q) ||
       (row.nomor_spk    || '').toLowerCase().includes(q) ||
       (row.nama_spk     || '').toLowerCase().includes(q) ||
+      String(row.kriteria  ?? '').includes(q)            ||
+      String(row.jml_benar ?? '').includes(q)            ||
+      String(row.skor      ?? '').includes(q)            ||
       formatTanggal(row.tgl_retail).includes(q)
     )
   }
@@ -605,6 +603,8 @@ const sortedData = computed(() => {
     case 'id-desc':  return data.sort((a, b) => b.id - a.id)
     case 'tgl-asc':  return data.sort((a, b) => new Date(a.tgl_retail) - new Date(b.tgl_retail))
     case 'tgl-desc': return data.sort((a, b) => new Date(b.tgl_retail) - new Date(a.tgl_retail))
+    case 'skor-asc':  return data.sort((a, b) => (a.skor ?? 0) - (b.skor ?? 0))
+    case 'skor-desc': return data.sort((a, b) => (b.skor ?? 0) - (a.skor ?? 0))
     default:         return data
   }
 })

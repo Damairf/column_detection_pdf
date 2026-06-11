@@ -16,8 +16,9 @@ router = APIRouter()
 # ── GET /evaluasi/ ────────────────────────────────────────────────────
 @router.get("/")
 def get_evaluasi_list(
-    start_date: Optional[str] = Query(default=None),
-    end_date:   Optional[str] = Query(default=None),
+    cabang_ids:  Optional[List[int]] = Query(default=None),
+    start_date:  Optional[str]       = Query(default=None),
+    end_date:    Optional[str]       = Query(default=None),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
@@ -50,6 +51,8 @@ def get_evaluasi_list(
         .outerjoin(models.SPK,   models.Dokumen.id_spk   == models.SPK.id)
     )
 
+    if cabang_ids:
+        query = query.filter(models.User.id_cabang.in_(cabang_ids))
     if start_date:
         from datetime import date
         query = query.filter(models.SPK.tgl_retail >= date.fromisoformat(start_date))
