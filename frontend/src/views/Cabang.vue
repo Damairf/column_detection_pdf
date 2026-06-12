@@ -179,8 +179,12 @@
               <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Cabang</label>
               <input v-model="form.nama_cabang" required type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50" />
             </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">ID Cabang</label>
+              <input v-model="form.id" required type="text" inputmode="numeric" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50 disabled:bg-gray-200 disabled:cursor-not-allowed" />
+            </div>
           </div>
-          <div v-if="formError" class="mt-4 text-red-500 text-sm">{{ formError }}</div>
+          <div v-if="formError" class="mt-4 text-red-500 text-sm text-center">{{ formError }}</div>
           <div class="mt-8 flex justify-end gap-3">
             <button type="button" @click="closeModal" class="cursor-pointer px-5 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Batal</button>
             <button type="submit" :disabled="saving" class="cursor-pointer flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition disabled:opacity-50">
@@ -356,6 +360,7 @@ function openAddModal() {
 
 function openEditModal(c) {
   isEdit.value = true
+  selectedCabang.value = c
   form.value = { id: c.id, nama_cabang: c.nama_cabang }
   formError.value = ''
   showModal.value = true
@@ -367,13 +372,19 @@ function closeModal() {
 
 async function handleSimpan() {
   formError.value = ''
+  
+  if (!/^\d+$/.test(String(form.value.id))) {
+    formError.value = 'ID cabang harus angka'
+    return
+  }
+
   saving.value = true
   try {
     const token = localStorage.getItem('token')
-    const payload = { nama_cabang: form.value.nama_cabang }
+    const payload = { id: form.value.id, nama_cabang: form.value.nama_cabang }
 
     if (isEdit.value) {
-      await axios.put(`/api/cabang/${form.value.id}`, payload, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.put(`/api/cabang/${selectedCabang.value.id}`, payload, { headers: { Authorization: `Bearer ${token}` } })
     } else {
       await axios.post('/api/cabang/', payload, { headers: { Authorization: `Bearer ${token}` } })
     }

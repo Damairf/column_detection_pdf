@@ -74,6 +74,7 @@
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nomor SPK</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama SPK</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Tanggal Retail</th>
+                <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Cabang</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">ID Template</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Status</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Detail</th>
@@ -90,6 +91,7 @@
                 <td class="px-5 py-3 text-center text-gray-700 font-medium">{{ spk.id }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ spk.nama_spk }}</td>
                 <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(spk.tgl_retail) }}</td>
+                <td class="px-5 py-3 text-center text-gray-700">{{ getNamaCabang(spk.id_cabang) }}</td>
                 <td class="px-5 py-3 text-center text-gray-500">{{ spk.id_template ?? '—' }}</td>
                   <td class="px-5 py-3 text-center">
                     <select
@@ -143,6 +145,13 @@
               <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Retail</label>
               <input v-model="form.tgl_retail" required type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50" />
             </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Cabang</label>
+              <select v-model="form.id_cabang" required class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50">
+                <option :value="null" disabled>Pilih Cabang</option>
+                <option v-for="c in listCabang" :key="c.id" :value="c.id">{{ c.nama_cabang }}</option>
+              </select>
+            </div>  
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Template</label>
               <div class="relative mb-2">
@@ -268,7 +277,7 @@
             </svg>
           </div>
           <p class="text-sm text-gray-500">Tarik dan unggah file XLSX anda</p>
-          <p class="text-xs text-gray-400 mt-1">Format: Nomor SPK, Nama SPK, Tanggal Retail, ID Template</p>
+          <p class="text-xs text-gray-400 mt-1">Format: Nomor SPK, Nama SPK, Tanggal Retail, ID Cabang, ID Template</p>
         </div>
 
         <input ref="fileInputRef" type="file" accept=".xlsx" class="hidden" @change="handleFileInput" />
@@ -406,6 +415,7 @@ const router = useRouter()
 
 const spks = ref([])
 const listTemplate = ref([])
+const listCabang = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
 
@@ -461,7 +471,7 @@ const currentUser = computed(() => {
   catch { return {} }
 })
 
-const form = ref({ id: '', nama_spk: '', tgl_retail: '', template_id: null })
+const form = ref({ id: '', nama_spk: '', tgl_retail: '', template_id: null, id_cabang: null })
 
 function lihatDetail(id) { router.push(`/spk/detail/${id}`) }
 
@@ -500,9 +510,23 @@ async function fetchTemplates() {
   } catch (err) {}
 }
 
+async function fetchCabang() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.get('/api/pengguna/cabang', { headers: { Authorization: `Bearer ${token}` } })
+    listCabang.value = res.data.sort((a, b) => a.nama_cabang.localeCompare(b.nama_cabang))
+  } catch (err) {}
+}
+
+function getNamaCabang(id_cabang) {
+  const c = listCabang.value.find(c => c.id === id_cabang)
+  return c ? c.nama_cabang : '—'
+}
+
 onMounted(() => {
   fetchSPK()
   fetchTemplates()
+  fetchCabang()
 })
 
 watch(searchQuery, () => { currentPage.value = 1 })
@@ -515,11 +539,18 @@ function formatTanggal(isoString) {
 
 const filteredData = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return spks.value
-  return spks.value.filter(row =>
+  let result = spks.value
+
+  if (currentUser.value.role !== 'admin') {
+    result = result.filter(spk => spk.id_cabang === currentUser.value.id_cabang)
+  }
+
+  if (!q) return result
+  return result.filter(row =>
     row.id.toLowerCase().includes(q) ||
     row.nama_spk.toLowerCase().includes(q) ||
-    formatTanggal(row.tgl_retail).includes(q)
+    formatTanggal(row.tgl_retail).includes(q) ||
+    getNamaCabang(row.id_cabang).toLowerCase().includes(q)
   )
 })
 
@@ -640,7 +671,8 @@ async function prosesFileXLSX(file) {
           id:          String(row[0]).trim(),
           nama_spk:    String(row[1]).trim(),
           tgl_retail:  tglRetail,
-          template_id: row[3] ? parseInt(row[3]) : null
+          id_cabang:   row[3] ? parseInt(row[3]) : null,
+          template_id: row[4] ? parseInt(row[4]) : null
         }
 
         try {
@@ -693,7 +725,7 @@ async function prosesFileXLSX(file) {
 }
 
 function openAddModal() {
-  form.value = { id: '', nama_spk: '', tgl_retail: '', template_ids: [] }
+  form.value = { id: '', nama_spk: '', tgl_retail: '', template_id: null, id_cabang: null }
   formError.value = ''
   templateSearch.value = ''
   templateSearchSubmitted.value = false
@@ -760,11 +792,11 @@ async function prosesAktivasiXLSX(file) {
         return
       }
 
-      const token         = localStorage.getItem('token')
-      let berhasil        = 0
-      let gagal           = 0
+      const token          = localStorage.getItem('token')
+      let berhasil         = 0
+      let gagal            = 0
       const tidakDitemukan = []
-      const pesanGagal    = []
+      const pesanGagal     = []
 
       aktivasiProgress.value = { current: 0, total: dataRows.length, percent: 0 }
 

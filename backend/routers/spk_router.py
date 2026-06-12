@@ -54,6 +54,7 @@ def create_spk(
         nama_spk=spk_data.nama_spk,
         tgl_retail=spk_data.tgl_retail,
         id_template=spk_data.template_id,
+        id_cabang=spk_data.id_cabang,
         status=spk_data.status or "Aktif"
     )
 
@@ -101,6 +102,8 @@ def update_spk(
         spk.tgl_retail = spk_data.tgl_retail
     if spk_data.template_id is not None:
         spk.id_template = spk_data.template_id
+    if spk_data.id_cabang is not None:
+        spk.id_cabang = spk_data.id_cabang
 
     db.commit()
     db.refresh(spk)

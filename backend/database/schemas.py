@@ -10,9 +10,11 @@ class CabangResponse(BaseModel):
         from_attributes = True
 
 class CabangCreate(BaseModel):
+    id: int
     nama_cabang: str
 
 class CabangUpdate(BaseModel):
+    id: Optional[int] = None
     nama_cabang: Optional[str] = None
 
 class UserDaftar(BaseModel):
@@ -67,6 +69,7 @@ class SPKBase(BaseModel):
     nama_spk: str
     tgl_retail: date
     status: Optional[str] = "Aktif"
+    id_cabang: Optional[int] = None
 
 class SPKCreate(SPKBase):
     template_id: Optional[int] = None
@@ -76,6 +79,7 @@ class SPKUpdate(BaseModel):
     tgl_retail: Optional[date] = None
     template_id: Optional[int] = None
     status: Optional[str] = None
+    id_cabang: Optional[int] = None
 
 class TemplateSimple(BaseModel):
     id: int
@@ -88,6 +92,7 @@ class SPKResponse(SPKBase):
     user: Optional[str] = None
     id_template: Optional[int] = None
     template: Optional[TemplateSimple] = None
+    cabang: Optional[str] = None
     created_at: Optional[datetime] = None
     class Config:
         from_attributes = True

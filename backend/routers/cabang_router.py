@@ -41,6 +41,13 @@ def get_all_cabang(current_admin: User = Depends(get_current_admin), db: Session
 
 @router.post("/", response_model=CabangResponse, status_code=status.HTTP_201_CREATED)
 def create_cabang(data: CabangCreate, current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
+    existing_id = db.query(Cabang).filter(Cabang.id == data.id).first()
+    if existing_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"ID cabang {data.id} sudah terdaftar."
+        )
+        
     existing = db.query(Cabang).filter(Cabang.nama_cabang == data.nama_cabang).first()
     if existing:
         raise HTTPException(
@@ -48,7 +55,7 @@ def create_cabang(data: CabangCreate, current_admin: User = Depends(get_current_
             detail="Nama cabang sudah terdaftar. Gunakan nama lain."
         )
 
-    new_cabang = Cabang(nama_cabang=data.nama_cabang)
+    new_cabang = Cabang(id=data.id, nama_cabang=data.nama_cabang)
     db.add(new_cabang)
     db.commit()
     db.refresh(new_cabang)
@@ -63,6 +70,24 @@ def update_cabang(cabang_id: int, data: CabangUpdate, current_admin: User = Depe
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Cabang tidak ditemukan."
         )
+
+    if data.id is not None and data.id != cabang.id:
+        existing_id = db.query(Cabang).filter(Cabang.id == data.id).first()
+        if existing_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="ID cabang tersebut sudah digunakan."
+            )
+        from sqlalchemy.exc import IntegrityError
+        try:
+            cabang.id = data.id
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tidak dapat mengubah ID cabang karena sedang digunakan oleh data lain (misal User/SPK)."
+            )
 
     if data.nama_cabang and data.nama_cabang != cabang.nama_cabang:
         existing = db.query(Cabang).filter(Cabang.nama_cabang == data.nama_cabang).first()

@@ -101,7 +101,7 @@
       </div>
 
       <!-- Tabel SPK -->
-      <div v-if="sudahCari" class="mb-6 border border-gray-200 rounded-xl overflow-hidden">
+      <div class="mb-6 border border-gray-200 rounded-xl overflow-hidden">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50">
@@ -303,6 +303,11 @@ const router = useRouter()
 const sudahCari      = ref(false)
 const queryDicari    = ref('')
 
+const currentUser = computed(() => {
+  try { return JSON.parse(localStorage.getItem('user')) || {} } 
+  catch { return {} }
+})
+
 const showUploadModal = ref(false)
 const isDragging      = ref(false)
 const isUploading     = ref(false)
@@ -332,15 +337,22 @@ watch(searchSPK, () => {
 
 const filteredSPK = computed(() => {
   const q = queryDicari.value.toLowerCase().trim()
-  if (!q) return []
-  return spkList.value.filter(s =>
-    (s.status ?? 'Aktif') === 'Aktif' &&
-    (
+  
+  let data = spkList.value.filter(s => (s.status ?? 'Aktif') === 'Aktif')
+
+  if (currentUser.value.role !== 'admin') {
+    data = data.filter(s => s.id_cabang === currentUser.value.id_cabang)
+  }
+
+  if (q) {
+    data = data.filter(s =>
       s.id.toLowerCase().includes(q) ||
       s.nama_spk.toLowerCase().includes(q) ||
       formatTanggal(s.tgl_retail).includes(q)
     )
-  )
+  }
+
+  return data
 })
 
 const totalSpkPages = computed(() =>
@@ -394,10 +406,6 @@ async function fetchSPKList() {
 function pilihSPK(s) {
   spkDipilih.value  = s.id
   errorSPK.value    = ''
-  sudahCari.value   = false
-  queryDicari.value = ''
-  searchSPK.value   = ''
-  spkPageRef.value  = 1
 }
 
 function formatTanggal(iso) {

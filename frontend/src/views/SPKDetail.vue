@@ -31,7 +31,7 @@
 
       <!-- Card Info SPK -->
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-7 mb-5">
-        <div class="grid grid-cols-4 gap-5">
+        <div class="grid grid-cols-5 gap-5">
 
           <!-- Nomor SPK -->
           <div>
@@ -54,6 +54,14 @@
             <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal Retail</label>
             <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
               {{ formatTanggal(spk?.tgl_retail) }}
+            </div>
+          </div>
+
+          <!-- Cabang -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Cabang</label>
+            <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 select-none">
+              {{ spk?.cabang || '—' }}
             </div>
           </div>
 
@@ -273,12 +281,34 @@
               />
             </div>
             <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Cabang</label>
+              <select v-model="form.id_cabang" required class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50">
+                <option :value="null" disabled>Pilih Cabang</option>
+                <option v-for="c in listCabang" :key="c.id" :value="c.id">{{ c.nama_cabang }}</option>
+              </select>
+            </div>
+            <div>
               <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Template</label>
+              <div class="relative mb-2">
+                <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-3.35z" />
+                  </svg>
+                </span>
+                <input
+                  v-model="templateSearch"
+                  type="text"
+                  placeholder="Cari template, tekan Enter untuk mencari..."
+                  class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent bg-gray-50"
+                  @keydown.enter.prevent="submitTemplateSearch"
+                />
+              </div>
+
               <div class="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-gray-50">
                 <label
-                  v-for="t in listTemplate"
+                  v-for="t in filteredTemplates"
                   :key="t.id"
-                  class="flex items-center gap-2 mb-2 cursor-pointer"
+                  class="flex items-center gap-2 mb-2 cursor-pointer hover:bg-gray-100 rounded px-1 py-1 transition"
                 >
                   <input
                     type="radio"
@@ -287,10 +317,10 @@
                     name="template"
                     class="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
                   />
-                  <span class="text-sm text-gray-700">{{ t.nama_template }}</span>
+                  <span class="text-sm text-gray-700 truncate">{{ t.nama_template }}</span>
                 </label>
-                <div v-if="listTemplate.length === 0" class="text-sm text-gray-400 text-center py-2">
-                  Tidak ada template tersedia.
+                <div v-if="filteredTemplates.length === 0" class="text-sm text-gray-400 text-center py-2">
+                  Tidak ada template ditemukan.
                 </div>
               </div>
             </div>
@@ -376,14 +406,34 @@ const spkId  = route.params.id
 const spk          = ref(null)
 const dokumenList  = ref([])
 const listTemplate = ref([])
+const listCabang   = ref([])
 
 const loadingSPK     = ref(false)
 const loadingDokumen = ref(false)
 
 const showEditModal   = ref(false)
 const showDeleteModal = ref(false)
-const form     = ref({ nama_spk: '', tgl_retail: '', template_id: null })
+const form     = ref({ nama_spk: '', tgl_retail: '', template_id: null, id_cabang: null })
 const saving   = ref(false)
+const templateSearch = ref('')
+const templateSearchSubmitted = ref(false)
+
+function submitTemplateSearch() {
+  templateSearchSubmitted.value = true
+}
+
+const filteredTemplates = computed(() => {
+  if (!templateSearchSubmitted.value) {
+    if (form.value.template_id) {
+      return listTemplate.value.filter(t => t.id === form.value.template_id)
+    }
+    return []
+  }
+  
+  const q = templateSearch.value.toLowerCase().trim()
+  if (!q) return listTemplate.value
+  return listTemplate.value.filter(t => t.nama_template.toLowerCase().includes(q))
+})
 const deleting = ref(false)
 const formError = ref('')
 
@@ -491,6 +541,11 @@ async function fetchData() {
     const resTemp = await axios.get('/api/template/list', { headers: { Authorization: `Bearer ${token}` } })
     listTemplate.value = resTemp.data
   } catch (err) {}
+
+  try {
+    const resCabang = await axios.get('/api/pengguna/cabang', { headers: { Authorization: `Bearer ${token}` } })
+    listCabang.value = resCabang.data.sort((a, b) => a.nama_cabang.localeCompare(b.nama_cabang))
+  } catch (err) {}
 }
 
 // ── Edit & Delete ─────────────────────────────────────────────────────
@@ -499,10 +554,13 @@ function openEditModal() {
     form.value = {
       nama_spk:    spk.value.nama_spk,
       tgl_retail:  spk.value.tgl_retail,
-      template_id: spk.value.id_template ?? null
+      template_id: spk.value.id_template ?? null,
+      id_cabang:   spk.value.id_cabang ?? null
     }
   }
   formError.value     = ''
+  templateSearch.value = ''
+  templateSearchSubmitted.value = false
   showEditModal.value = true
 }
 

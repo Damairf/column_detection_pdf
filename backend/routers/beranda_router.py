@@ -416,6 +416,7 @@ def get_spk_tersedia(
             "tgl_retail":  s.tgl_retail,
             "id_template": s.id_template,
             "status":      s.status,
+            "id_cabang":   s.id_cabang,
         }
         for s in spks
         if s.id not in exclude_ids

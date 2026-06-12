@@ -103,11 +103,17 @@ class SPK(Base):
     tgl_retail = Column(Date)
     id_template = Column(Integer, ForeignKey("template.id"), nullable=True)
     status = Column(String, default="Aktif")
+    id_cabang = Column(Integer, ForeignKey("cabang.id"), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     template = relationship("Template", backref="spks")
     user_rel = relationship("User")
+    cabang_rel = relationship("Cabang")
 
     @property
     def user(self):
         return self.user_rel.nama if self.user_rel else None
+
+    @property
+    def cabang(self):
+        return self.cabang_rel.nama_cabang if self.cabang_rel else None
