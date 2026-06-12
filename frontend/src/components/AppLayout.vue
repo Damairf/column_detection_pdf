@@ -51,14 +51,19 @@
           Evaluasi
         </router-link>
 
-        <router-link v-if="user.role === 'admin'" to="/spk"
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
+        <router-link to="/spk"
+          class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
           :class="isActive('/spk') ? 'bg-gray-900 text-white shadow' : 'text-gray-600 hover:bg-gray-100'"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-          </svg>
-          SPK
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+            SPK
+          </div>
+          <span v-if="user.role === 'user' && unuploadedSpkCount > 0" class="flex items-center justify-center bg-red-500 text-white text-xs font-semibold h-5 min-w-[1.25rem] px-1 rounded-full">
+            {{ unuploadedSpkCount }}
+          </span>
         </router-link>
 
         <router-link v-if="user.role === 'admin'" to="/pengguna"
@@ -107,12 +112,15 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import axios from 'axios'
 
 const router   = useRouter()
 const route    = useRoute()
 const avatarImg = ref(null)
+
+const unuploadedSpkCount = ref(0)
 
 const user = computed(() => {
   try { return JSON.parse(localStorage.getItem('user')) || {} }
@@ -171,4 +179,27 @@ function isActive(basePath) {
 function handleAvatarError() {
   if (avatarImg.value) avatarImg.value.style.display = 'none'
 }
+
+onMounted(async () => {
+  if (user.value.role === 'user') {
+    try {
+      const token = localStorage.getItem('token')
+      const [resSpk, resDoc] = await Promise.all([
+        axios.get('/api/spk/', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('/api/beranda/dokumen', { headers: { Authorization: `Bearer ${token}` } })
+      ])
+      
+      const spks = resSpk.data.filter(s => s.id_cabang === user.value.id_cabang)
+      const docIds = new Set(resDoc.data.map(d => d.id_spk).filter(Boolean))
+      
+      let count = 0
+      for (const s of spks) {
+        if (!docIds.has(s.id)) count++
+      }
+      unuploadedSpkCount.value = count
+    } catch (err) {
+      console.error('Gagal memuat badge SPK:', err)
+    }
+  }
+})
 </script>

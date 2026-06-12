@@ -37,7 +37,7 @@
             </div>
           </div>
 
-          <button
+          <button v-if="currentUser.role === 'admin'"
             @click="showAktivasiModal = true"
             class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
           >
@@ -47,7 +47,7 @@
             Aktivasi SPK
           </button>
           
-          <button
+          <button v-if="currentUser.role === 'admin'"
             @click="showUploadModal = true"
             class="cursor-pointer flex items-center gap-1.5 px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
           >
@@ -75,9 +75,9 @@
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Nama SPK</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Tanggal Retail</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Cabang</th>
-                <th class="px-5 py-3.5 text-center font-semibold text-gray-700">ID Template</th>
+                <th v-if="currentUser.role === 'admin'" class="px-5 py-3.5 text-center font-semibold text-gray-700">ID Template</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Status</th>
-                <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Detail</th>
+                <th v-if="currentUser.role === 'admin'" class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Detail</th>
               </tr>
             </thead>
             <tbody>
@@ -92,9 +92,10 @@
                 <td class="px-5 py-3 text-center text-gray-700">{{ spk.nama_spk }}</td>
                 <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(spk.tgl_retail) }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ getNamaCabang(spk.id_cabang) }}</td>
-                <td class="px-5 py-3 text-center text-gray-500">{{ spk.id_template ?? '—' }}</td>
+                <td v-if="currentUser.role === 'admin'" class="px-5 py-3 text-center text-gray-500">{{ spk.id_template ?? '—' }}</td>
                   <td class="px-5 py-3 text-center">
                     <select
+                      v-if="currentUser.role === 'admin'"
                       :value="spk.status ?? 'Aktif'"
                       @change="ubahStatus(spk, $event.target.value)"
                       class="px-2 py-1 text-sm font-medium rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 cursor-pointer transition"
@@ -103,8 +104,15 @@
                       <option value="Aktif">Aktif</option>
                       <option value="Nonaktif">Nonaktif</option>
                     </select>
+                    <span
+                      v-else
+                      class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
+                      :class="getSpkStatus(spk.id) === 'Sudah' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
+                    >
+                      {{ getSpkStatus(spk.id) }}
+                    </span>
                   </td>
-                <td class="px-5 py-3 text-center flex items-center justify-center gap-3">
+                <td v-if="currentUser.role === 'admin'" class="px-5 py-3 text-center flex items-center justify-center gap-3">
                   <button @click="lihatDetail(spk.id)" class="text-blue-500 hover:text-blue-700 font-medium hover:underline transition">
                     Detail
                   </button>
@@ -442,6 +450,11 @@ const currentPage = ref(1)
 const itemsPerPage = 10
 const showUrutDropdown = ref(false)
 const sortKey = ref('tgl-desc')
+const uploadedSpkIds = ref(new Set())
+
+function getSpkStatus(spkId) {
+  return uploadedSpkIds.value.has(spkId) ? 'Sudah' : 'Belum'
+}
 
 const sortOptions = [
   { label: 'A - Z (Menurun)',   value: 'az-desc'  },
@@ -520,11 +533,25 @@ async function fetchCabang() {
 
 function getNamaCabang(id_cabang) {
   const c = listCabang.value.find(c => c.id === id_cabang)
-  return c ? c.nama_cabang : '—'
+  if (c) return c.nama_cabang
+  if (currentUser.value.id_cabang === id_cabang && currentUser.value.cabang) {
+    return currentUser.value.cabang
+  }
+  return '—'
+}
+
+async function fetchDokumen() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.get('/api/beranda/dokumen', { headers: { Authorization: `Bearer ${token}` } })
+    const ids = res.data.map(d => d.id_spk).filter(Boolean)
+    uploadedSpkIds.value = new Set(ids)
+  } catch (err) {}
 }
 
 onMounted(() => {
   fetchSPK()
+  fetchDokumen()
   fetchTemplates()
   fetchCabang()
 })
