@@ -131,9 +131,9 @@
         </div>
       </div>
       <!-- Footer Warning -->
-      <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
+      <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
         Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-      </div>
+      </div> -->
     </div>
     
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="closeModal">

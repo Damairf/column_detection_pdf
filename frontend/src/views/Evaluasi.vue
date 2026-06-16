@@ -197,9 +197,9 @@
       </div>
 
       <!-- Footer Warning -->
-      <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
+      <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
         Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-      </div>
+      </div> -->
     </div>
 
     <!-- Modal Pilih Data -->
