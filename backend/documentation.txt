@@ -1,0 +1,269 @@
+==============================================================
+  DOKUMENTASI SETUP - Column Detection System
+  Panduan Lengkap untuk Menjalankan Proyek dari Awal
+==============================================================
+
+
+==============================================================
+  PRASYARAT (Wajib Diinstal Sebelum Memulai)
+==============================================================
+
+1. Python (versi 3.10 atau lebih baru)
+   - Download: https://www.python.org/downloads/
+   - Saat instalasi, CENTANG opsi "Add Python to PATH"
+   - Verifikasi: python --version
+
+2. Node.js (versi 20.19+ atau 22.12+)
+   - Download: https://nodejs.org/
+   - Verifikasi: node --version
+
+3. PostgreSQL (versi 14 atau lebih baru)
+   - Download: https://www.postgresql.org/download/
+   - Catat username dan password saat instalasi
+   - Verifikasi: psql --version
+
+4. Poppler (Diperlukan untuk konversi PDF ke gambar)
+
+   [Windows]
+   - Download dari: https://github.com/oschwartz10612/poppler-windows/releases
+   - Ekstrak file ZIP ke lokasi permanen, contoh:
+     C:\Poppler\poppler-xx.xx.x\Library\bin
+   - PENTING: Path ini harus diupdate di file:
+     backend/services/pdf_to_image.py (baris 5, variabel POPPLER_PATH)
+
+   [Linux - Ubuntu/Debian]
+   - sudo apt-get install poppler-utils
+
+   [macOS]
+   - brew install poppler
+
+
+==============================================================
+  LANGKAH 1: CLONE PROYEK
+==============================================================
+
+   git clone https://github.com/Damairf/column_detection_pdf
+   cd column-detection-system
+
+
+==============================================================
+  LANGKAH 2: SETUP BACKEND & DATABASE
+==============================================================
+
+1. Masuk ke folder backend:
+   cd backend
+
+2. Buat virtual environment:
+   python -m venv venv
+
+3. Aktifkan virtual environment:
+
+   [Windows - PowerShell]
+   .\venv\Scripts\Activate.ps1
+
+   [Windows - Command Prompt]
+   .\venv\Scripts\activate.bat
+
+   [Linux / macOS]
+   source venv/bin/activate
+
+4. Install semua dependensi Python:
+   pip install -r requirement.txt
+
+5. Konfigurasi Poppler Path (PENTING - Khusus Windows):
+   - Buka file backend/services/pdf_to_image.py
+   - Ubah baris 5 (variabel POPPLER_PATH) sesuai lokasi Poppler Anda:
+
+     POPPLER_PATH = r"C:\path\ke\poppler\Library\bin"
+
+   - Contoh:
+     POPPLER_PATH = r"C:\Poppler\poppler-25.12.0\Library\bin"
+
+6. Inisialisasi database (OTOMATIS membuat database + tabel):
+   python init_db.py
+
+   Script ini akan:
+   - Membuat database 'column_detection' jika belum ada
+   - Membuat semua tabel yang diperlukan (cabang, users,
+     template, dokumen, kolom_template, hasil_deteksi,
+     nilai, spk)
+
+7. Seed data awal (opsional, untuk membuat user admin dan cabang):
+   python seed_users.py
+
+8. Jalankan backend server:
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+   Backend akan berjalan di: http://localhost:8000
+   Dokumentasi API (Swagger): http://localhost:8000/docs
+
+
+==============================================================
+  LANGKAH 3: SETUP FRONTEND
+==============================================================
+
+1. Buka terminal BARU (biarkan backend tetap berjalan)
+
+2. Masuk ke folder frontend:
+   cd frontend
+
+3. Install semua dependensi Node.js:
+   npm install
+
+4. Konfigurasi file .env:
+   - Salin file .env.example menjadi .env:
+
+     [Windows]
+     copy .env.example .env
+
+     [Linux / macOS]
+     cp .env.example .env
+
+   - Buka file .env dan isi dengan URL backend:
+
+     VITE_API_BASE_URL=http://localhost:8000
+
+     Catatan: Jika ingin diakses dari perangkat lain di jaringan
+     yang sama, gunakan IP lokal komputer, contoh:
+     VITE_API_BASE_URL=http://192.168.1.100:8000
+
+5. Jalankan frontend (mode development):
+   npm run dev
+
+   Frontend akan berjalan di: http://localhost:5173
+
+
+==============================================================
+  LANGKAH 4: AKSES APLIKASI
+==============================================================
+
+1. Buka browser dan akses: http://localhost:5173
+
+2. Login dengan akun admin default (jika sudah menjalankan seed):
+   - Username : nasmoco
+   - Password : admin123
+
+
+==============================================================
+  STRUKTUR FOLDER PROYEK
+==============================================================
+
+column-detection-system/
+├── backend/
+│   ├── database/
+│   │   ├── database.py            # Koneksi database
+│   │   ├── models.py              # Model tabel (SQLAlchemy ORM)
+│   │   └── schemas.py             # Skema validasi (Pydantic)
+│   ├── routers/
+│   │   ├── auth.py                # Login & registrasi
+│   │   ├── beranda_router.py      # Upload & deteksi dokumen
+│   │   ├── cabang_router.py       # CRUD cabang
+│   │   ├── detection_router.py    # API deteksi langsung
+│   │   ├── evaluasi_router.py     # Laporan evaluasi
+│   │   ├── profile_router.py      # Edit profil user
+│   │   ├── spk_router.py          # CRUD SPK
+│   │   ├── template_router.py     # CRUD template
+│   │   └── user_router.py         # Manajemen pengguna (admin)
+│   ├── services/
+│   │   ├── align.py               # Alignment halus (ECC)
+│   │   ├── align_document.py      # Alignment kasar (SIFT + Homography)
+│   │   ├── auth.py                # Hash password & JWT
+│   │   ├── detection_pipeline.py  # Pipeline deteksi utama
+│   │   ├── empty_detector.py      # Deteksi kolom kosong/terisi
+│   │   ├── field_extraction.py    # Crop kolom dari gambar
+│   │   ├── pdf_to_image.py        # Konversi PDF ke gambar
+│   │   ├── preprocess.py          # Preprocessing gambar
+│   │   └── template_service.py    # Ambil data kolom dari DB
+│   ├── storage/                   # Folder penyimpanan file
+│   ├── config.py                  # Konfigurasi database URL
+│   ├── main.py                    # Entry point aplikasi
+│   ├── requirement.txt            # Daftar dependensi Python
+│   ├── init_db.py                 # Script inisialisasi database otomatis
+│   └── seed_users.py              # Script seed data awal
+│
+└── frontend/
+    ├── src/                       # Source code Vue.js
+    ├── .env                       # Konfigurasi environment
+    ├── .env.example               # Contoh konfigurasi
+    ├── package.json               # Daftar dependensi Node.js
+    └── vite.config.js             # Konfigurasi Vite
+
+
+==============================================================
+  DAFTAR DEPENDENSI PYTHON (requirement.txt)
+==============================================================
+
+  Paket                          Fungsi
+  ----------------------------   ---------------------------------
+  fastapi                        Framework web API
+  uvicorn[standard]              ASGI server
+  sqlalchemy                     ORM database
+  psycopg2-binary                Driver PostgreSQL
+  sqlalchemy-utils                Utilitas SQLAlchemy (auto-create DB)
+  alembic                        Migrasi database
+  bcrypt                         Hashing password
+  python-jose[cryptography]      JWT token (autentikasi)
+  pydantic[email]                Validasi data
+  email-validator                Validasi format email
+  python-multipart               Upload file di FastAPI
+  python-dotenv                  Membaca file .env
+  opencv-python                  Computer vision (deteksi kolom)
+  numpy                          Komputasi numerik
+  scikit-image                   Pengolahan gambar tambahan
+  Pillow                         Manipulasi gambar (PIL)
+  pdf2image                      Konversi PDF ke gambar
+  openpyxl                       Ekspor data ke Excel (.xlsx)
+
+
+==============================================================
+  TROUBLESHOOTING
+==============================================================
+
+1. ERROR: "pip install" gagal pada opencv-python
+   Solusi: Pastikan Python versi 3.10+. Jika tetap gagal:
+   pip install opencv-python-headless==4.10.0.84
+
+2. ERROR: "psycopg2" gagal diinstall
+   Solusi: Pastikan PostgreSQL sudah terinstal. Jika tetap gagal,
+   gunakan versi binary:
+   pip install psycopg2-binary==2.9.9
+
+3. ERROR: "Unable to get page count. Is poppler installed?"
+   Solusi: Poppler belum terinstal atau path salah.
+   - Pastikan Poppler sudah didownload dan diekstrak
+   - Periksa variabel POPPLER_PATH di backend/services/pdf_to_image.py
+   - Pastikan path mengarah ke folder "bin" yang berisi pdftoppm.exe
+
+4. ERROR: "Connection refused" saat mengakses database
+   Solusi:
+   - Pastikan PostgreSQL server sedang berjalan
+   - Periksa koneksi di file .env (DATABASE_URL)
+   - Pastikan database "column_detection" sudah dibuat
+
+5. ERROR: "CORS error" di browser
+   Solusi: Pastikan backend berjalan di port 8000 dan frontend
+   di port 5173.
+
+6. Frontend tidak bisa mengakses API
+   Solusi:
+   - Periksa file frontend/.env (VITE_API_BASE_URL)
+   - Pastikan backend sudah berjalan terlebih dahulu
+
+
+==============================================================
+  CATATAN PENTING
+==============================================================
+
+1. File .env pada backend DAN frontend berisi informasi sensitif.
+   JANGAN pernah commit file ini ke repository.
+
+2. Folder storage/ akan dibuat otomatis oleh aplikasi saat pertama
+   kali mengunggah file. Folder ini menyimpan:
+   - PDF template dan dokumen
+   - Gambar hasil konversi PDF
+   - File temporary untuk proses deteksi
+
+3. Pastikan kedua server (backend & frontend) berjalan bersamaan
+   di terminal yang BERBEDA.
+
+==============================================================
