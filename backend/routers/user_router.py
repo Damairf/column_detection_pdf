@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List
 
 from database.database import get_db
@@ -33,10 +34,47 @@ def get_current_admin(
                             
     return user
 
-@router.get("/", response_model=List[UserResponse])
-def get_users(current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    return users
+@router.get("/")
+def get_users(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1),
+    search: str = Query(default=""),
+    current_admin: User = Depends(get_current_admin), 
+    db: Session = Depends(get_db)
+):
+    query = db.query(User)
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                User.username.ilike(search_term),
+                User.nama.ilike(search_term),
+                User.role.ilike(search_term),
+                User.divisi.ilike(search_term)
+            )
+        )
+    total = query.count()
+    users = query.order_by(User.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+
+    data = [
+        {
+            "id": u.id,
+            "nama": u.nama,
+            "divisi": u.divisi,
+            "username": u.username,
+            "role": u.role,
+            "id_cabang": u.id_cabang,
+            "cabang": u.cabang,
+            "created_at": u.created_at
+        }
+        for u in users
+    ]
+    return {
+        "data": data,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
 
 @router.get("/cabang", response_model=List[CabangResponse])
 def get_cabang(current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):

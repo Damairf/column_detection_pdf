@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 from fastapi import APIRouter, BackgroundTasks, UploadFile, File, Depends, HTTPException, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -250,6 +250,9 @@ def _jalankan_deteksi(dokumen_id: int, db_url: str):
 @router.get("/dokumen")
 def get_dokumen_list(
     id_spk: str = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1),
+    search: str = Query(default=""),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
@@ -272,21 +275,13 @@ def get_dokumen_list(
                 .correlate(models.User)
                 .scalar_subquery()
             ).label("cabang"),
-            (
-                select(models.Template.nama_template)
-                .where(models.Template.id == models.Dokumen.id_template)
-                .correlate(models.Dokumen)
-                .scalar_subquery()
-            ).label("nama_template"),
-            (
-                select(models.SPK.nama_spk)
-                .where(models.SPK.id == models.Dokumen.id_spk)
-                .correlate(models.Dokumen)
-                .scalar_subquery()
-            ).label("nama_spk"),
+            models.Template.nama_template.label("nama_template"),
+            models.SPK.nama_spk.label("nama_spk"),
             models.Dokumen.created_at,
         )
         .outerjoin(models.User, models.Dokumen.id_user == models.User.id)
+        .outerjoin(models.Template, models.Dokumen.id_template == models.Template.id)
+        .outerjoin(models.SPK, models.Dokumen.id_spk == models.SPK.id)
     )
  
     if user.role != "admin":
@@ -294,10 +289,23 @@ def get_dokumen_list(
  
     if id_spk:
         query = query.filter(models.Dokumen.id_spk == id_spk)
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Dokumen.nama_dokumen.ilike(search_term),
+                models.Template.nama_template.ilike(search_term),
+                models.SPK.nama_spk.ilike(search_term),
+                models.User.nama.ilike(search_term),
+                models.Dokumen.status.ilike(search_term)
+            )
+        )
  
-    results = query.order_by(models.Dokumen.created_at.desc()).all()
+    total = query.count()
+    results = query.order_by(models.Dokumen.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
  
-    return [
+    data = [
         {
             "id":            row.id,
             "nama_dokumen":  row.nama_dokumen,
@@ -313,6 +321,13 @@ def get_dokumen_list(
         }
         for row in results
     ]
+
+    return {
+        "data": data,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
 
 
 # ── POST /beranda/upload-dokumen ──────────────────────────────────────

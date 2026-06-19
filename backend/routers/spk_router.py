@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List
 
 from database.database import get_db
@@ -24,10 +25,55 @@ def get_current_user_id(
     return int(payload["sub"])
 
 
-@router.get("/", response_model=List[SPKResponse])
-def get_all_spk(db: Session = Depends(get_db)):
-    spks = db.query(models.SPK).all()
-    return spks
+@router.get("/")
+def get_all_spk(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1),
+    search: str = Query(default=""),
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    query = db.query(models.SPK)
+    
+    if user and user.role != "admin":
+        query = query.filter(models.SPK.id_cabang == user.id_cabang)
+        
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.SPK.id.ilike(search_term),
+                models.SPK.nama_spk.ilike(search_term),
+                models.SPK.status.ilike(search_term)
+            )
+        )
+    total = query.count()
+    spks = query.order_by(models.SPK.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    
+    data = [
+        {
+            "id": s.id,
+            "nama_spk": s.nama_spk,
+            "tgl_retail": s.tgl_retail,
+            "id_user": s.id_user,
+            "user": s.user,
+            "id_template": s.id_template,
+            "template": {"id": s.template.id, "nama_template": s.template.nama_template} if s.template else None,
+            "status": s.status,
+            "id_cabang": s.id_cabang,
+            "cabang": s.cabang,
+            "created_at": s.created_at
+        }
+        for s in spks
+    ]
+
+    return {
+        "data": data,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
 
 
 @router.get("/{spk_id}", response_model=SPKResponse)

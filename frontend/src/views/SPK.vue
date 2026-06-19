@@ -447,6 +447,7 @@ const aktivasiProgress       = ref({ current: 0, total: 0, percent: 0 })
 
 const searchQuery = ref('')
 const currentPage = ref(1)
+const totalPages = ref(1)
 const itemsPerPage = 10
 const showUrutDropdown = ref(false)
 const sortKey = ref('tgl-desc')
@@ -506,8 +507,16 @@ async function fetchSPK() {
   loading.value = true
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('/api/spk/', { headers: { Authorization: `Bearer ${token}` } })
-    spks.value = res.data
+    const res = await axios.get('/api/spk/', { 
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        page: currentPage.value,
+        limit: itemsPerPage,
+        search: searchQuery.value
+      }
+    })
+    spks.value = res.data.data
+    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = 'Gagal memuat data SPK.'
   } finally {
@@ -556,7 +565,16 @@ onMounted(() => {
   fetchCabang()
 })
 
-watch(searchQuery, () => { currentPage.value = 1 })
+let searchTimeout = null
+watch(searchQuery, () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchSPK()
+  }, 400)
+})
+
+watch(currentPage, () => fetchSPK())
 
 function formatTanggal(isoString) {
   if (!isoString) return '-'
@@ -564,25 +582,8 @@ function formatTanggal(isoString) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-const filteredData = computed(() => {
-  const q = searchQuery.value.toLowerCase().trim()
-  let result = spks.value
-
-  if (currentUser.value.role !== 'admin') {
-    result = result.filter(spk => spk.id_cabang === currentUser.value.id_cabang)
-  }
-
-  if (!q) return result
-  return result.filter(row =>
-    row.id.toLowerCase().includes(q) ||
-    row.nama_spk.toLowerCase().includes(q) ||
-    formatTanggal(row.tgl_retail).includes(q) ||
-    getNamaCabang(row.id_cabang).toLowerCase().includes(q)
-  )
-})
-
 const sortedData = computed(() => {
-  const data = [...filteredData.value]
+  const data = [...spks.value]
   return data.sort((a, b) => {
     switch (sortKey.value) {
       case 'az-asc':   return a.nama_spk.localeCompare(b.nama_spk)
@@ -594,11 +595,7 @@ const sortedData = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return sortedData.value.slice(start, start + itemsPerPage)
-})
+const paginatedData = computed(() => sortedData.value)
 
 let hideTimeout = null
 function handleMouseEnter() { if (hideTimeout) clearTimeout(hideTimeout); showUrutDropdown.value = true }

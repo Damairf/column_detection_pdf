@@ -211,6 +211,7 @@ column-detection-system/
   numpy                          Komputasi numerik
   scikit-image                   Pengolahan gambar tambahan
   Pillow                         Manipulasi gambar (PIL)
+  pillow-heif                    Dukungan format AVIF/HEIF
   pdf2image                      Konversi PDF ke gambar
   openpyxl                       Ekspor data ke Excel (.xlsx)
 

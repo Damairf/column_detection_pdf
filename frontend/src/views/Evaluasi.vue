@@ -392,6 +392,7 @@ const appliedEndDate    = ref('')
 
 const searchQuery      = ref('')
 const currentPage      = ref(1)
+const totalPages       = ref(1)
 const itemsPerPage     = 10
 const showUrutDropdown = ref(false)
 const sortKey          = ref('id-desc')
@@ -557,12 +558,17 @@ async function fetchEvaluasi() {
     appliedCabangIds.value.forEach(id => params.append('cabang_ids', id))
     if (appliedStartDate.value) params.append('start_date', appliedStartDate.value)
     if (appliedEndDate.value)   params.append('end_date',   appliedEndDate.value)
+    
+    params.append('page', currentPage.value)
+    params.append('limit', itemsPerPage)
+    if (searchQuery.value) params.append('search', searchQuery.value)
 
     const res = await axios.get(`/api/evaluasi/?${params.toString()}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
 
-    items.value = res.data
+    items.value = res.data.data
+    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = err.response?.status === 403
       ? 'Akses ditolak.'
@@ -572,30 +578,8 @@ async function fetchEvaluasi() {
   }
 }
 
-const filteredData = computed(() => {
-  let data = items.value
-
-  const q = searchQuery.value.toLowerCase().trim()
-  if (q) {
-    data = data.filter(row =>
-      String(row.id).toLowerCase().includes(q)           ||
-      (row.nama_dokumen || '').toLowerCase().includes(q) ||
-      (row.pengunggah   || '').toLowerCase().includes(q) ||
-      (row.cabang       || '').toLowerCase().includes(q) ||
-      (row.nomor_spk    || '').toLowerCase().includes(q) ||
-      (row.nama_spk     || '').toLowerCase().includes(q) ||
-      String(row.kriteria  ?? '').includes(q)            ||
-      String(row.jml_benar ?? '').includes(q)            ||
-      String(row.skor      ?? '').includes(q)            ||
-      formatTanggal(row.tgl_retail).includes(q)
-    )
-  }
-
-  return data
-})
-
 const sortedData = computed(() => {
-  const data = [...filteredData.value]
+  const data = [...items.value]
   switch (sortKey.value) {
     case 'az-asc':   return data.sort((a, b) => (a.nama_dokumen || '').localeCompare(b.nama_dokumen || ''))
     case 'az-desc':  return data.sort((a, b) => (b.nama_dokumen || '').localeCompare(a.nama_dokumen || ''))
@@ -609,11 +593,7 @@ const sortedData = computed(() => {
   }
 })
 
-const totalPages    = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return sortedData.value.slice(start, start + itemsPerPage)
-})
+const paginatedData = computed(() => sortedData.value)
 
 function goToPage(page) {
   currentPage.value = Math.max(1, Math.min(page, totalPages.value))
@@ -685,7 +665,16 @@ function formatTanggal(isoString) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-watch(searchQuery, () => { currentPage.value = 1 })
+let searchTimeout = null
+watch(searchQuery, () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchEvaluasi()
+  }, 400)
+})
+
+watch(currentPage, () => fetchEvaluasi())
 
 onMounted(() => {
   fetchCabang()

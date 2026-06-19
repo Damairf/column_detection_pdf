@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -34,9 +34,36 @@ def get_current_admin(
     return user
 
 
-@router.get("/", response_model=List[CabangResponse])
-def get_all_cabang(current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
-    return db.query(Cabang).all()
+@router.get("/")
+def get_all_cabang(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1),
+    search: str = Query(default=""),
+    current_admin: User = Depends(get_current_admin), 
+    db: Session = Depends(get_db)
+):
+    query = db.query(Cabang)
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(Cabang.nama_cabang.ilike(search_term))
+        
+    total = query.count()
+    cabang_list = query.order_by(Cabang.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+
+    data = [
+        {
+            "id": c.id,
+            "nama_cabang": c.nama_cabang,
+            "created_at": c.created_at
+        }
+        for c in cabang_list
+    ]
+    return {
+        "data": data,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
 
 
 @router.post("/", response_model=CabangResponse, status_code=status.HTTP_201_CREATED)

@@ -287,6 +287,7 @@ const errorMsg = ref('')
 
 const searchQuery = ref('')
 const currentPage = ref(1)
+const totalPages = ref(1)
 const itemsPerPage = 10
 const showUrutDropdown = ref(false)
 const sortKey = ref('tgl-desc')
@@ -322,8 +323,16 @@ async function fetchUsers() {
   errorMsg.value = ''
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('/api/pengguna/', { headers: { Authorization: `Bearer ${token}` } })
-    users.value = res.data
+    const res = await axios.get('/api/pengguna/', { 
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        page: currentPage.value,
+        limit: itemsPerPage,
+        search: searchQuery.value
+      }
+    })
+    users.value = res.data.data
+    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = 'Gagal memuat data pengguna.'
   } finally {
@@ -348,7 +357,16 @@ onMounted(() => {
   fetchCabang()
 })
 
-watch(searchQuery, () => { currentPage.value = 1 })
+let searchTimeout = null
+watch(searchQuery, () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchUsers()
+  }, 400)
+})
+
+watch(currentPage, () => fetchUsers())
 
 function formatTanggal(isoString) {
   if (!isoString) return '-'
@@ -356,21 +374,8 @@ function formatTanggal(isoString) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-const filteredData = computed(() => {
-  const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return users.value
-  return users.value.filter(row =>
-    row.nama?.toLowerCase().includes(q) ||
-    row.username?.toLowerCase().includes(q) ||
-    row.divisi?.toLowerCase().includes(q) ||
-    row.role?.toLowerCase().includes(q) ||
-    row.cabang?.toLowerCase().includes(q) ||
-    formatTanggal(row.created_at).includes(q)
-  )
-})
-
 const sortedData = computed(() => {
-  const data = [...filteredData.value]
+  const data = [...users.value]
   return data.sort((a, b) => {
     if (a.role === 'admin' && b.role !== 'admin') return -1
     if (b.role === 'admin' && a.role !== 'admin') return 1
@@ -385,11 +390,7 @@ const sortedData = computed(() => {
   })
 })
 
-const totalPages    = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return sortedData.value.slice(start, start + itemsPerPage)
-})
+const paginatedData = computed(() => sortedData.value)
 
 let hideTimeout = null
 function handleMouseEnter() {

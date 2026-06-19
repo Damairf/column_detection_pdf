@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
@@ -16,6 +16,9 @@ router = APIRouter()
 # ── GET /evaluasi/ ────────────────────────────────────────────────────
 @router.get("/")
 def get_evaluasi_list(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1),
+    search: str = Query(default=""),
     cabang_ids:  Optional[List[int]] = Query(default=None),
     start_date:  Optional[str]       = Query(default=None),
     end_date:    Optional[str]       = Query(default=None),
@@ -60,9 +63,21 @@ def get_evaluasi_list(
         from datetime import date
         query = query.filter(models.SPK.tgl_retail <= date.fromisoformat(end_date))
 
-    results = query.order_by(models.Dokumen.created_at.desc()).all()
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Dokumen.nama_dokumen.ilike(search_term),
+                models.User.nama.ilike(search_term),
+                models.SPK.nama_spk.ilike(search_term),
+                models.SPK.id.ilike(search_term)
+            )
+        )
 
-    return [
+    total = query.count()
+    results = query.order_by(models.Dokumen.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+
+    data = [
         {
             "id":           row.id,
             "nama_dokumen": row.nama_dokumen,
@@ -77,6 +92,13 @@ def get_evaluasi_list(
         }
         for row in results
     ]
+    
+    return {
+        "data": data,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
 
 # ── GET /evaluasi/ekspor ──────────────────────────────────────────────
 @router.get("/ekspor")

@@ -115,6 +115,12 @@ const routes = [
     component: Profile,
     meta: { requiresAuth: true },
   },
+  {
+    path: "/kustomisasi",
+    name: "Kustomisasi",
+    component: () => import("../views/Kustomisasi.vue"),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({ history: createWebHistory(), routes });

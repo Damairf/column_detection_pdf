@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, select
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
+from sqlalchemy import func, select, or_
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List, Optional
@@ -283,8 +283,11 @@ def batal_kolom(
     return {"message": f"{len(data.kolom_ids)} kolom berhasil dihapus"}
 
 # ── GET /template/list ───────────────────────────────────────────────
-@router.get("/list", response_model=List[TemplateResponse])
+@router.get("/list")
 def get_template_list(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1),
+    search: str = Query(default=""),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
@@ -296,7 +299,7 @@ def get_template_list(
         .group_by(models.KolomTemplate.id_template)
         .subquery()
     )
-    results = (
+    query = (
         db.query(
             models.Template.id,
             models.Template.nama_template,
@@ -307,20 +310,37 @@ def get_template_list(
         )
         .outerjoin(kolom_count, models.Template.id == kolom_count.c.id_template)
         .outerjoin(models.User, models.Template.id_user == models.User.id)
-        .order_by(models.Template.id.asc())
-        .all()
     )
-    return [
-        TemplateResponse(
-            id=row.id,
-            nama_template=row.nama_template,
-            jml_halaman=row.jml_halaman,
-            jml_kolom=row.jml_kolom,
-            username=row.username,
-            created_at=row.created_at
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Template.nama_template.ilike(search_term),
+                models.User.nama.ilike(search_term)
+            )
         )
+
+    total = query.count()
+    results = query.order_by(models.Template.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+
+    data = [
+        {
+            "id": row.id,
+            "nama_template": row.nama_template,
+            "jml_halaman": row.jml_halaman,
+            "jml_kolom": row.jml_kolom,
+            "username": row.username,
+            "created_at": row.created_at
+        }
         for row in results
     ]
+    return {
+        "data": data,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
 
 # ── GET /template/ ────────────────────────────────────────────────────
 @router.get("/")

@@ -27,7 +27,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
-          <p class="text-sm text-gray-500">tarik dan unggah file PDF anda</p>
+          <p class="text-sm text-gray-500">Tarik dan unggah file PDF anda</p>
         </div>
 
         <input ref="fileInputRef" type="file" accept=".pdf" class="hidden" @change="handleFileInput" />
@@ -235,6 +235,7 @@ const loading          = ref(false)
 const errorMsg         = ref('')
 const searchQuery      = ref('')
 const currentPage      = ref(1)
+const totalPages       = ref(1)
 const itemsPerPage     = 10
 const showUrutDropdown = ref(false)
 const sortKey          = ref('id-desc')
@@ -260,9 +261,15 @@ async function fetchData() {
   try {
     const token = localStorage.getItem('token')
     const response = await axios.get('/api/template/list', {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        page: currentPage.value,
+        limit: itemsPerPage,
+        search: searchQuery.value
+      }
     })
-    allData.value = response.data
+    allData.value = response.data.data
+    totalPages.value = Math.ceil(response.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = err.response?.status === 401
       ? 'Sesi habis. Silakan login ulang.'
@@ -273,7 +280,17 @@ async function fetchData() {
 }
 
 onMounted(() => fetchData())
-watch(searchQuery, () => { currentPage.value = 1 })
+
+let searchTimeout = null
+watch(searchQuery, () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchData()
+  }, 400)
+})
+
+watch(currentPage, () => fetchData())
 
 function formatTanggal(isoString) {
   if (!isoString) return '-'
@@ -281,21 +298,8 @@ function formatTanggal(isoString) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-const filteredData = computed(() => {
-  const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return allData.value
-  return allData.value.filter(row =>
-    String(row.id).toLowerCase().includes(q) ||
-    row.nama_template?.toLowerCase().includes(q) ||
-    row.username?.toLowerCase().includes(q) ||
-    String(row.jml_halaman).includes(q) ||
-    String(row.jml_kolom).includes(q) ||
-    formatTanggal(row.created_at).includes(q)
-  )
-})
-
 const sortedData = computed(() => {
-  const data = [...filteredData.value]
+  const data = [...allData.value]
   switch (sortKey.value) {
     case 'az-asc':   return data.sort((a, b) => a.nama_template.localeCompare(b.nama_template))
     case 'az-desc':  return data.sort((a, b) => b.nama_template.localeCompare(a.nama_template))
@@ -307,11 +311,7 @@ const sortedData = computed(() => {
   }
 })
 
-const totalPages    = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return sortedData.value.slice(start, start + itemsPerPage)
-})
+const paginatedData = computed(() => sortedData.value)
 
 let hideTimeout = null
 function handleMouseEnter() {

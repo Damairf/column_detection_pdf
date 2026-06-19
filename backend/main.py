@@ -9,6 +9,7 @@ from routers import user_router
 from routers import evaluasi_router
 from routers import cabang_router
 from routers import spk_router
+from routers import kustomisasi_router
 from database.database import engine
 from database import models
 
@@ -85,6 +86,13 @@ app.include_router(
     spk_router.router,
     prefix="/spk",
     tags=["SPK"]
+)
+
+# Router Kustomisasi
+app.include_router(
+    kustomisasi_router.router,
+    prefix="/kustomisasi",
+    tags=["Kustomisasi"]
 )
 
 @app.get("/")

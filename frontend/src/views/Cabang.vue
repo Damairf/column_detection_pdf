@@ -251,6 +251,7 @@ const errorMsg = ref('')
 
 const searchQuery = ref('')
 const currentPage = ref(1)
+const totalPages = ref(1)
 const itemsPerPage = 10
 const showUrutDropdown = ref(false)
 const sortKey = ref('id-desc')
@@ -280,8 +281,16 @@ async function fetchCabang() {
   errorMsg.value = ''
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('/api/cabang/', { headers: { Authorization: `Bearer ${token}` } })
-    cabangList.value = res.data
+    const res = await axios.get('/api/cabang/', { 
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        page: currentPage.value,
+        limit: itemsPerPage,
+        search: searchQuery.value
+      }
+    })
+    cabangList.value = res.data.data
+    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = 'Gagal memuat data cabang.'
   } finally {
@@ -293,7 +302,16 @@ onMounted(() => {
   fetchCabang()
 })
 
-watch(searchQuery, () => { currentPage.value = 1 })
+let searchTimeout = null
+watch(searchQuery, () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchCabang()
+  }, 400)
+})
+
+watch(currentPage, () => fetchCabang())
 
 function formatTanggal(isoString) {
   if (!isoString) return '-'
@@ -301,18 +319,8 @@ function formatTanggal(isoString) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-const filteredData = computed(() => {
-  const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return cabangList.value
-  return cabangList.value.filter(row =>
-    String(row.id).includes(q) ||
-    row.nama_cabang?.toLowerCase().includes(q) ||
-    formatTanggal(row.created_at).includes(q)
-  )
-})
-
 const sortedData = computed(() => {
-  const data = [...filteredData.value]
+  const data = [...cabangList.value]
   switch (sortKey.value) {
     case 'az-asc':   return data.sort((a, b) => a.nama_cabang.localeCompare(b.nama_cabang))
     case 'az-desc':  return data.sort((a, b) => b.nama_cabang.localeCompare(a.nama_cabang))
@@ -324,11 +332,7 @@ const sortedData = computed(() => {
   }
 })
 
-const totalPages    = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return sortedData.value.slice(start, start + itemsPerPage)
-})
+const paginatedData = computed(() => sortedData.value)
 
 let hideTimeout = null
 function handleMouseEnter() {

@@ -15,9 +15,9 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String)
+    username = Column(String, index=True)
     password = Column(String)
-    nama = Column(String)
+    nama = Column(String, index=True)
     divisi = Column(String)
     role = Column(String, default="user")
     id_cabang = Column(Integer, ForeignKey("cabang.id"), nullable=True)
@@ -35,7 +35,7 @@ class Template(Base):
 
     id = Column(Integer, primary_key=True)
     id_user = Column(Integer, ForeignKey("users.id"))
-    nama_template = Column(String)
+    nama_template = Column(String, index=True)
     jml_halaman = Column(Integer)
     path_template_pdf = Column(String)
     resolusi_width = Column(Integer)
@@ -48,8 +48,8 @@ class Dokumen(Base):
 
     id = Column(Integer, primary_key=True)
     id_user = Column(Integer, ForeignKey("users.id"))
-    nama_dokumen = Column(String)
-    status = Column(String)
+    nama_dokumen = Column(String, index=True)
+    status = Column(String, index=True)
     path_dokumen = Column(String)
     path_pdf = Column(String)
     id_template = Column(Integer, ForeignKey("template.id"))
@@ -99,7 +99,7 @@ class SPK(Base):
 
     id = Column(String, primary_key=True)
     id_user = Column(Integer, ForeignKey("users.id"))
-    nama_spk = Column(String)
+    nama_spk = Column(String, index=True)
     tgl_retail = Column(Date)
     id_template = Column(Integer, ForeignKey("template.id"), nullable=True)
     status = Column(String, default="Aktif")

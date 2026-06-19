@@ -269,6 +269,7 @@ const loading          = ref(false)
 const errorMsg         = ref('')
 const searchQuery      = ref('')
 const currentPage      = ref(1)
+const totalPages       = ref(1)
 const itemsPerPage     = 10
 const showUrutDropdown = ref(false)
 const sortKey          = ref('id-desc')
@@ -295,9 +296,15 @@ async function fetchData(silent = false) {
   try {
     const token = localStorage.getItem('token')
     const res   = await axios.get('/api/beranda/dokumen', {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        page: currentPage.value,
+        limit: itemsPerPage,
+        search: searchQuery.value
+      }
     })
-    allData.value = res.data
+    allData.value = res.data.data
+    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     if (!silent) {
       errorMsg.value = err.response?.status === 401
@@ -351,22 +358,8 @@ function labelStatus(status) {
   }
 }
 
-const filteredData = computed(() => {
-  const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return allData.value
-  return allData.value.filter(row =>
-    String(row.id).toLowerCase().includes(q)       ||
-    row.nama_dokumen?.toLowerCase().includes(q)    ||
-    row.pengunggah?.toLowerCase().includes(q)      ||
-    row.id_spk?.toLowerCase().includes(q)          ||
-    row.nama_spk?.toLowerCase().includes(q)        ||
-    formatTanggal(row.created_at).includes(q)      ||
-    row.status?.toLowerCase().includes(q)
-  )
-})
-
 const sortedData = computed(() => {
-  const data = [...filteredData.value]
+  const data = [...allData.value]
   switch (sortKey.value) {
     case 'az-asc':   return data.sort((a, b) => a.nama_dokumen.localeCompare(b.nama_dokumen))
     case 'az-desc':  return data.sort((a, b) => b.nama_dokumen.localeCompare(a.nama_dokumen))
@@ -378,11 +371,7 @@ const sortedData = computed(() => {
   }
 })
 
-const totalPages    = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return sortedData.value.slice(start, start + itemsPerPage)
-})
+const paginatedData = computed(() => sortedData.value)
 
 let hideTimeout = null
 function handleMouseEnter() {
@@ -465,7 +454,15 @@ watch(downloadStartDate, (newVal) => {
   }
 })
 
-watch(searchQuery, () => { currentPage.value = 1 })
+let searchTimeout = null
+watch(searchQuery, () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchData()
+  }, 400)
+})
+watch(currentPage, () => fetchData())
 watch(allData, () => startPollingIfNeeded(), { deep: false })
 
 onMounted(async () => {

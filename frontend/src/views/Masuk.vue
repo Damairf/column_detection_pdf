@@ -1,12 +1,21 @@
 <template>
   <div class="relative min-h-screen w-full overflow-hidden flex items-center justify-center">
 
-    <!-- Background image -->
+    <!-- Background image (dinamis dari API) -->
     <div class="absolute inset-0 z-0">
+      <!-- Placeholder saat loading -->
+      <div
+        v-if="isBgLoading"
+        class="w-full h-full bg-gray-800"
+      ></div>
+      <!-- Gambar background -->
       <img
-        src="/src/assets/bg-nasmoco.avif"
+        v-else
+        :src="bgUrl"
+        :key="bgUrl"
         alt="Nasmoco Background"
         class="w-full h-full object-cover"
+        @error="handleBgError"
       />
     </div>
 
@@ -34,7 +43,7 @@
             <label class="block text-white font-semibold mb-0.5 text-sm">Username</label>
             <input
               v-model="form.username"
-              type="username"
+              type="text"
               placeholder="Masukkan username anda....."
               class="w-full px-3 py-2 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 transition text-sm border-0"
               style="background: rgba(255,255,255,0.88);"
@@ -101,14 +110,16 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
-const router = useRouter()
+const router       = useRouter()
 const showPassword = ref(false)
-const loading = ref(false)
-const serverError = ref('')
+const loading      = ref(false)
+const serverError  = ref('')
+const isBgLoading  = ref(true)
+const bgUrl        = ref('')
 
 const form = reactive({
   username: '',
@@ -120,24 +131,51 @@ const errors = reactive({
   password: ''
 })
 
-function validate() {
-  let valid = true
-  errors.username = ''
-  errors.password = ''
+onMounted(async () => {
+  await fetchBackground()
+})
 
-  if (!form.username) {
+async function fetchBackground() {
+  isBgLoading.value = true
+  try {
+    const base      = import.meta.env.VITE_API_BASE_URL || ''
+    const res       = await axios.get(`${base}/api/kustomisasi/bg-active`)
+    const filename  = res.data.background || 'bg-nasmoco.avif'
+    bgUrl.value = `${base}/api/kustomisasi/background-file/${filename}?t=${Date.now()}`
+  } catch (e) {
+    const base = import.meta.env.VITE_API_BASE_URL || ''
+    bgUrl.value = `${base}/api/kustomisasi/background-file/bg-nasmoco.avif?t=${Date.now()}`
+  } finally {
+    isBgLoading.value = false
+  }
+}
+
+function handleBgError(e) {
+  const base       = import.meta.env.VITE_API_BASE_URL || ''
+  const fallbackUrl = `${base}/api/kustomisasi/background-file/bg-nasmoco.avif?t=${Date.now()}`
+  if (e.target.src !== fallbackUrl) {
+    e.target.src = fallbackUrl
+  }
+}
+
+// ─── Validasi form ────────────────────────────────────────────────────────────
+function validate() {
+  let valid        = true
+  errors.username  = ''
+  errors.password  = ''
+
+  if (!form.username.trim()) {
     errors.username = 'Username wajib diisi.'
     valid = false
   }
-
   if (!form.password) {
     errors.password = 'Password wajib diisi.'
     valid = false
   }
-
   return valid
 }
 
+// ─── Submit login ─────────────────────────────────────────────────────────────
 async function handleMasuk() {
   serverError.value = ''
   if (!validate()) return
