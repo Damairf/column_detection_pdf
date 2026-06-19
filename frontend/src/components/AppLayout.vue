@@ -15,7 +15,7 @@
         </p>
         <p class="text-sm text-gray-500 mb-6">
           Logout otomatis dalam
-          <span class="font-bold text-red-500 tabular-nums">{{ countdown }}</span>
+          <span class="font-semibold text-red-500 tabular-nums">{{ countdown }}</span>
           detik.
         </p>
 
