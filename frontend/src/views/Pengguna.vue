@@ -377,6 +377,11 @@ function formatTanggal(isoString) {
 const sortedData = computed(() => {
   const data = [...users.value]
   return data.sort((a, b) => {
+    const aIsMe = a.id === currentUser.value.id
+    const bIsMe = b.id === currentUser.value.id
+    if (aIsMe && !bIsMe) return -1
+    if (bIsMe && !aIsMe) return  1
+
     if (a.role === 'admin' && b.role !== 'admin') return -1
     if (b.role === 'admin' && a.role !== 'admin') return 1
 
