@@ -1,6 +1,52 @@
 <template>
   <div class="flex h-screen bg-gray-100 overflow-hidden">
 
+    <!-- Modal Peringatan Idle Timeout -->
+    <div
+      v-if="showWarningModal"
+      class="fixed inset-0 z-[9999] flex items-center justify-center"
+      style="background: rgba(0,0,0,0.50);"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-6 p-8 text-center">
+
+        <h3 class="text-lg font-bold text-gray-800 mb-2">Sesi Akan Berakhir</h3>
+        <p class="text-sm text-gray-500 mb-1">
+          Anda tidak aktif selama beberapa waktu.
+        </p>
+        <p class="text-sm text-gray-500 mb-6">
+          Logout otomatis dalam
+          <span class="font-bold text-red-500 tabular-nums">{{ countdown }}</span>
+          detik.
+        </p>
+
+        <!-- Progress bar hitung mundur -->
+        <div class="w-full bg-gray-200 rounded-full h-1.5 mb-6 overflow-hidden">
+          <div
+            class="h-1.5 rounded-full transition-all duration-1000 ease-linear"
+            :class="countdown > 30 ? 'bg-yellow-400' : countdown > 10 ? 'bg-orange-400' : 'bg-red-500'"
+            :style="{ width: `${(countdown / 60) * 100}%` }"
+          ></div>
+        </div>
+
+        <!-- Tombol aksi -->
+        <div class="flex gap-3">
+          <button
+            @click="logoutNow"
+            class="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+          >
+            Keluar
+          </button>
+          <button
+            @click="stayLoggedIn"
+            class="flex-1 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 transition cursor-pointer"
+          >
+            Tetap Masuk
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
     <aside class="w-56 bg-white flex flex-col shadow-md flex-shrink-0">
 
       <!-- Profile -->
@@ -10,8 +56,13 @@
         title="Lihat Profile"
       >
         <div class="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
-          <img src="/src/assets/avatar-default.jpg" alt="Avatar"
-            class="w-full h-full object-cover" @error="handleAvatarError" ref="avatarImg" />
+          <img
+            src="/src/assets/avatar-default.jpg"
+            alt="Avatar"
+            class="w-full h-full object-cover"
+            @error="handleAvatarError"
+            ref="avatarImg"
+          />
         </div>
         <div class="overflow-hidden">
           <p class="text-sm font-bold text-gray-800 truncate">{{ user.nama || 'Pengguna' }}</p>
@@ -19,6 +70,7 @@
         </div>
       </div>
 
+      <!-- Nav Menu -->
       <nav class="flex-1 px-3 py-4 flex flex-col gap-1">
 
         <router-link to="/beranda"
@@ -61,7 +113,10 @@
             </svg>
             SPK
           </div>
-          <span v-if="user.role === 'user' && unuploadedSpkCount > 0" class="flex items-center justify-center bg-red-500 text-white text-xs font-semibold h-5 min-w-[1.25rem] px-1 rounded-full">
+          <span
+            v-if="user.role === 'user' && unuploadedSpkCount > 0"
+            class="flex items-center justify-center bg-red-500 text-white text-xs font-semibold h-5 min-w-[1.25rem] px-1 rounded-full"
+          >
             {{ unuploadedSpkCount }}
           </span>
         </router-link>
@@ -118,6 +173,7 @@
         <slot />
       </main>
     </div>
+
   </div>
 </template>
 
@@ -125,12 +181,15 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
+import { useIdleTimeout } from '../composables/useIdleTimeout'
 
-const router   = useRouter()
-const route    = useRoute()
+const router    = useRouter()
+const route     = useRoute()
 const avatarImg = ref(null)
 
 const unuploadedSpkCount = ref(0)
+
+const { showWarningModal, countdown, stayLoggedIn, logoutNow } = useIdleTimeout()
 
 const user = computed(() => {
   try { return JSON.parse(localStorage.getItem('user')) || {} }
@@ -143,28 +202,27 @@ const pageTitle = computed(() => {
   const q    = mode === 'detail' ? 'Template / Detail / Ubah' : 'Template / Tambah'
 
   const map = {
-    '/beranda':          'Beranda',
-    '/beranda/tambah':   'Beranda / Tambah',
-    '/template':         'Template',
-    '/template/tambah':  'Template / Tambah',
-    '/profile':          'Profile',
-    '/profile/ubah':     'Profile / Ubah',
-    '/pengguna':         'Pengguna',
-    '/cabang':           'Cabang',
-    '/evaluasi':         'Evaluasi',
-    '/spk':              'SPK',
-    '/kustomisasi':      'Kustomisasi',
+    '/beranda':        'Beranda',
+    '/beranda/tambah': 'Beranda / Tambah',
+    '/template':       'Template',
+    '/template/tambah':'Template / Tambah',
+    '/profile':        'Profile',
+    '/profile/ubah':   'Profile / Ubah',
+    '/pengguna':       'Pengguna',
+    '/cabang':         'Cabang',
+    '/evaluasi':       'Evaluasi',
+    '/spk':            'SPK',
+    '/kustomisasi':    'Kustomisasi',
   }
   if (map[p]) return map[p]
 
   if (p === '/kolom/baru') return `${q} / Kolom Baru`
   if (p === '/kolom/edit') return `${q} / Edit Kolom`
 
-  if (/^\/beranda\/detail\/\d+$/.test(p)) return 'Beranda / Detail'
-  if (/^\/spk\/detail\/[^\/]+$/.test(p)) return 'SPK / Detail'
-
-  if (/^\/template\/detail\/\d+$/.test(p))       return 'Template / Detail'
-  if (/^\/template\/detail\/\d+\/ubah$/.test(p)) return 'Template / Detail / Ubah'
+  if (/^\/beranda\/detail\/\d+$/.test(p))        return 'Beranda / Detail'
+  if (/^\/spk\/detail\/[^/]+$/.test(p))          return 'SPK / Detail'
+  if (/^\/template\/detail\/\d+$/.test(p))        return 'Template / Detail'
+  if (/^\/template\/detail\/\d+\/ubah$/.test(p))  return 'Template / Detail / Ubah'
 
   return p.replace(/^\//, '')
 })
@@ -177,12 +235,10 @@ function isActive(basePath) {
       || route.path === '/kolom/edit'
   }
   if (basePath === '/beranda') {
-    return route.path === '/beranda'
-      || route.path.startsWith('/beranda/')
+    return route.path === '/beranda' || route.path.startsWith('/beranda/')
   }
   if (basePath === '/spk') {
-    return route.path === '/spk'
-      || route.path.startsWith('/spk/')
+    return route.path === '/spk' || route.path.startsWith('/spk/')
   }
   return route.path === basePath || route.path.startsWith(basePath + '/')
 }
@@ -195,14 +251,15 @@ onMounted(async () => {
   if (user.value.role === 'user') {
     try {
       const token = localStorage.getItem('token')
+      const headers = { Authorization: `Bearer ${token}` }
       const [resSpk, resDoc] = await Promise.all([
-        axios.get('/api/spk/', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('/api/beranda/dokumen', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get('/api/spk/',          { headers }),
+        axios.get('/api/beranda/dokumen', { headers }),
       ])
-      
-      const spks = resSpk.data.filter(s => s.id_cabang === user.value.id_cabang)
+
+      const spks   = resSpk.data.filter(s => s.id_cabang === user.value.id_cabang)
       const docIds = new Set(resDoc.data.map(d => d.id_spk).filter(Boolean))
-      
+
       let count = 0
       for (const s of spks) {
         if (!docIds.has(s.id)) count++
