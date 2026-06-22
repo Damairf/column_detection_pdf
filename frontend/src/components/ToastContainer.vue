@@ -60,24 +60,32 @@ defineProps({
 })
 defineEmits(['remove'])
 
-function setupTimerBar(el, toast) {
-  if (!el) return
+const initializedBars = new Set()
 
-  const elapsed   = Date.now() - toast.createdAt
-  const remaining = Math.max(toast.duration - elapsed, 0)
+function setupTimerBar(el, toast) {
+  if (!el) {
+    initializedBars.delete(toast.id)
+    return
+  }
+
+  if (initializedBars.has(toast.id)) return
+  initializedBars.add(toast.id)
+
+  const elapsed    = Date.now() - toast.createdAt
+  const remaining  = Math.max(toast.duration - elapsed, 0)
   const startWidth = toast.duration > 0
     ? Math.max((remaining / toast.duration) * 100, 0)
     : 0
 
   el.style.transition = 'none'
-  el.style.width = startWidth + '%'
+  el.style.width      = startWidth + '%'
 
   void el.offsetWidth
 
   requestAnimationFrame(() => {
     if (remaining > 0) {
       el.style.transition = `width linear ${remaining / 1000}s`
-      el.style.width = '0%'
+      el.style.width      = '0%'
     } else {
       el.style.width = '0%'
     }

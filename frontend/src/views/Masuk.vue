@@ -81,6 +81,17 @@
             <p v-if="errors.password" class="text-red-700 text-xs mt-1">{{ errors.password }}</p>
           </div>
 
+          <!-- reCAPTCHA v2 -->
+          <div class="mb-4 flex flex-col items-center">
+            <div
+              ref="recaptchaContainer"
+              class="recaptcha-wrapper"
+            ></div>
+            <p v-if="errors.recaptcha" class="text-red-300 text-xs mt-2 text-center">
+              {{ errors.recaptcha }}
+            </p>
+          </div>
+
           <!-- Error dari server -->
           <div v-if="serverError" class="mb-4 p-3 bg-red-500/30 border border-red-400/50 rounded-lg text-red-200 text-sm text-center">
             {{ serverError }}
@@ -109,41 +120,82 @@
   </div>
 </template>
 
+<style scoped>
+.recaptcha-wrapper {
+  transform: scale(0.85);
+  transform-origin: center top;
+}
+
+.recaptcha-wrapper :deep(iframe) {
+  border-radius: 5px;
+  display: block;
+}
+</style>
+
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
-const router       = useRouter()
-const showPassword = ref(false)
-const loading      = ref(false)
-const serverError  = ref('')
-const isBgLoading  = ref(true)
-const bgUrl        = ref('')
+const router             = useRouter()
+const showPassword       = ref(false)
+const loading            = ref(false)
+const serverError        = ref('')
+const isBgLoading        = ref(true)
+const bgUrl              = ref('')
+const recaptchaToken     = ref('')
+const recaptchaSiteKey   = import.meta.env.VITE_RECAPTCHA_SITE_KEY
+const recaptchaContainer = ref(null)
+let   recaptchaWidgetId  = null
 
-const form = reactive({
-  username: '',
-  password: ''
-})
-
-const errors = reactive({
-  username: '',
-  password: ''
-})
+const form = reactive({ username: '', password: '' })
+const errors = reactive({ username: '', password: '', recaptcha: '' })
 
 onMounted(async () => {
   await fetchBackground()
+  await nextTick()
+  initRecaptcha()
 })
 
+function initRecaptcha() {
+  if (typeof window.grecaptcha === 'undefined' || typeof window.grecaptcha.render === 'undefined') {
+    setTimeout(initRecaptcha, 300)
+    return
+  }
+
+  if (recaptchaWidgetId !== null) {
+    try { window.grecaptcha.reset(recaptchaWidgetId) } catch (_) {}
+    return
+  }
+
+  if (!recaptchaContainer.value) return
+
+  recaptchaWidgetId = window.grecaptcha.render(recaptchaContainer.value, {
+    sitekey:           recaptchaSiteKey,
+    callback:          (token) => {
+      recaptchaToken.value = token
+      errors.recaptcha = ''
+    },
+    'expired-callback': () => {
+      recaptchaToken.value = ''
+    },
+    'error-callback':   () => {
+      recaptchaToken.value = ''
+      errors.recaptcha = 'reCAPTCHA error, coba refresh halaman.'
+    }
+  })
+}
+
+// ─── Background ───────────────────────────────────────────────────────────────
 async function fetchBackground() {
   isBgLoading.value = true
   try {
-    const base      = import.meta.env.VITE_API_BASE_URL || ''
-    const res       = await axios.get(`${base}/api/kustomisasi/bg-active`)
-    const filename  = res.data.background || 'bg-nasmoco.avif'
-    bgUrl.value = `${base}/api/kustomisasi/background-file/${filename}?t=${Date.now()}`
-  } catch (e) {
-    const base = import.meta.env.VITE_API_BASE_URL || ''
+    const base     = import.meta.env.VITE_API_BASE_URL || ''
+    const res      = await axios.get(`${base}/api/kustomisasi/bg-active`)
+    const filename = res.data.background || 'bg-nasmoco.avif'
+    bgUrl.value    = `${base}/api/kustomisasi/background-file/${filename}?t=${Date.now()}`
+  } catch {
+    const base  = import.meta.env.VITE_API_BASE_URL || ''
     bgUrl.value = `${base}/api/kustomisasi/background-file/bg-nasmoco.avif?t=${Date.now()}`
   } finally {
     isBgLoading.value = false
@@ -151,31 +203,25 @@ async function fetchBackground() {
 }
 
 function handleBgError(e) {
-  const base       = import.meta.env.VITE_API_BASE_URL || ''
+  const base        = import.meta.env.VITE_API_BASE_URL || ''
   const fallbackUrl = `${base}/api/kustomisasi/background-file/bg-nasmoco.avif?t=${Date.now()}`
-  if (e.target.src !== fallbackUrl) {
-    e.target.src = fallbackUrl
-  }
+  if (e.target.src !== fallbackUrl) e.target.src = fallbackUrl
 }
 
-// ─── Validasi form ────────────────────────────────────────────────────────────
+// ─── Validasi ─────────────────────────────────────────────────────────────────
 function validate() {
   let valid        = true
   errors.username  = ''
   errors.password  = ''
+  errors.recaptcha = ''
 
-  if (!form.username.trim()) {
-    errors.username = 'Username wajib diisi.'
-    valid = false
-  }
-  if (!form.password) {
-    errors.password = 'Password wajib diisi.'
-    valid = false
-  }
+  if (!form.username.trim()) { errors.username  = 'Username wajib diisi.';             valid = false }
+  if (!form.password)        { errors.password  = 'Password wajib diisi.';             valid = false }
+  if (!recaptchaToken.value) { errors.recaptcha = 'Harap selesaikan verifikasi reCAPTCHA.'; valid = false }
   return valid
 }
 
-// ─── Submit login ─────────────────────────────────────────────────────────────
+// ─── Submit ───────────────────────────────────────────────────────────────────
 async function handleMasuk() {
   serverError.value = ''
   if (!validate()) return
@@ -183,20 +229,21 @@ async function handleMasuk() {
   loading.value = true
   try {
     const response = await axios.post('/api/auth/masuk', {
-      username: form.username,
-      password: form.password
+      username:        form.username,
+      password:        form.password,
+      recaptcha_token: recaptchaToken.value
     })
 
     localStorage.setItem('token', response.data.access_token)
     localStorage.setItem('user', JSON.stringify(response.data.user))
-
     router.push('/beranda')
   } catch (err) {
-    if (err.response?.data?.detail) {
-      serverError.value = err.response.data.detail
-    } else {
-      serverError.value = 'Terjadi kesalahan. Coba lagi.'
+    serverError.value = err.response?.data?.detail || 'Terjadi kesalahan. Coba lagi.'
+
+    if (recaptchaWidgetId !== null && window.grecaptcha) {
+      window.grecaptcha.reset(recaptchaWidgetId)
     }
+    recaptchaToken.value = ''
   } finally {
     loading.value = false
   }

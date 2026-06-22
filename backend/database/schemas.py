@@ -28,6 +28,7 @@ class UserDaftar(BaseModel):
 class UserMasuk(BaseModel):
     username: str
     password: str
+    recaptcha_token: str
 
 class UserResponse(BaseModel):
     id: int
