@@ -1,6 +1,9 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from routers import template_router
 from routers import beranda_router
 from routers import auth
@@ -12,14 +15,21 @@ from routers import spk_router
 from routers import kustomisasi_router
 from database.database import engine
 from database import models
+from limiter import limiter
 
 # Buat tabel otomatis jika belum ada
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Document Detection API",
-    version="1.0"
+    version="1.0",
+    docs_url="/docs" if os.getenv("ENV") == "development" else None,
+    redoc_url="/redoc" if os.getenv("ENV") == "development" else None,
+    openapi_url="/openapi.json" if os.getenv("ENV") == "development" else None,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS
 app.add_middleware(

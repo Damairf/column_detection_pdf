@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from database.database import get_db
 from database.models import User
 from database.schemas import UserDaftar, UserMasuk, TokenResponse, UserResponse
 from services.auth import hash_password, verify_password, create_access_token
+from slowapi import Limiter
+from limiter import limiter
 import httpx
 
-router = APIRouter()
+router = APIRouter()  
 
 # ─── Konfigurasi reCAPTCHA ────────────────────────────────────────────────────
 RECAPTCHA_SECRET_KEY = "Masukkan secret key dari recaptcha"
@@ -48,7 +50,8 @@ def daftar(user_data: UserDaftar, db: Session = Depends(get_db)):
 
 # ─── Endpoint masuk ───────────────────────────────────────────────────────────
 @router.post("/masuk", response_model=TokenResponse)
-async def masuk(user_data: UserMasuk, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def masuk(request: Request, user_data: UserMasuk, db: Session = Depends(get_db)):
 
     is_human = await verify_recaptcha(user_data.recaptcha_token)
     if not is_human:
