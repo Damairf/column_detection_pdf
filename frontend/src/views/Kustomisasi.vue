@@ -97,9 +97,24 @@
         <button
           @click="openUploadModal"
           :disabled="isSaving"
-          class="w-full py-3 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition mb-4"
+          class="w-full py-3 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition mb-4 flex items-center justify-center gap-2"
           :class="isSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
         >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-4 h-4"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M16.862 4.487a2.25 2.25 0 113.182 3.182L8.25 19.463 3 21l1.537-5.25L16.862 4.487z"
+            />
+          </svg>
+
           Ubah gambar background
         </button>
 
@@ -140,6 +155,8 @@ import { ref, computed, onMounted } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import ToastContainer from '../components/ToastContainer.vue'
+import { useToast } from '../composables/useToast'
 
 const showUploadModal  = ref(false)
 const isDragging       = ref(false)
@@ -159,6 +176,8 @@ const hasTempFile      = ref(false)
 const hasUnsavedChange = ref(false)
 
 const previewKey       = ref(0)
+
+const { addToast } = useToast()
 
 const previewUrl = computed(() => {
   const base      = import.meta.env.VITE_API_BASE_URL || ''
@@ -289,6 +308,7 @@ async function handleSimpan() {
     hasUnsavedChange.value = false
     saveSuccess.value      = res.data.message
     previewKey.value++
+    addToast('Background berhasil disimpan.', 'success')
   } catch (e) {
     saveError.value = e.response?.data?.detail
   } finally {
@@ -311,6 +331,7 @@ async function handleReset() {
     hasUnsavedChange.value = false
     saveSuccess.value      = res.data.message
     previewKey.value++
+    addToast('Background berhasil direset.', 'success')
   } catch (e) {
     saveError.value = e.response?.data?.detail || 'Gagal mereset background. Coba lagi.'
   } finally {

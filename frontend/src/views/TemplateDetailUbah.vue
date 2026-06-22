@@ -168,10 +168,6 @@
       </div>
     </div>
   </div>
-  <!-- Footer Warning -->
-  <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-    Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-  </div> -->
   </div>
   </AppLayout>
 </template>
@@ -181,6 +177,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
 const route  = useRoute()
@@ -202,6 +199,8 @@ const editedKolomList = ref([])
 const snapshotKolom = ref([])
 const showDeleteModal = ref(false)
 const selectedKolomId = ref(null)
+
+const { addToast } = useToast()
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const SS_KEY   = 'template_detail_ubah'
@@ -391,6 +390,7 @@ async function handleKonfirmasi() {
     }
 
     sessionStorage.removeItem(SS_KEY)
+    addToast('Template berhasil diubah.', 'success')
     router.replace(`/template/detail/${templateId.value}`)
   } catch (err) {
     serverError.value = err.response?.data?.detail || 'Gagal menyimpan perubahan.'

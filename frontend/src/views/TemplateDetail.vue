@@ -240,11 +240,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Footer Warning -->
-    <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-    </div> -->
     </div>
   </AppLayout>
 </template>
@@ -255,11 +250,13 @@ import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
 import * as XLSX from 'xlsx'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
 const route  = useRoute()
 
 const templateId = computed(() => route.params.id)
+const { addToast } = useToast()
 
 const template  = ref({})
 const loading   = ref(false)
@@ -271,7 +268,6 @@ const showDownloadModal = ref(false)
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
-// Cek apakah user yang login adalah pemilik template atau pusat
 const user = computed(() => {
   try {
     return JSON.parse(localStorage.getItem('user') || '{}')
@@ -315,6 +311,7 @@ async function handleDelete() {
     })
 
     showDeleteModal.value = false
+    addToast('Template berhasil dihapus.', 'success')
     router.replace('/template')
 
   } catch (err) {

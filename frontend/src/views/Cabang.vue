@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
     <div class="flex flex-col min-h-full">
+
       <!-- Cari + Urut + Tambah -->
       <div class="flex items-center justify-between mb-4">
         <div class="relative">
@@ -163,10 +164,6 @@
         </div>
       </div>
 
-      <!-- Footer Warning -->
-      <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-        Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-      </div> -->
     </div>
 
     <!-- Modal Form (Tambah / Edit) -->
@@ -244,6 +241,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import { useToast } from '../composables/useToast'
+
+const { addToast } = useToast()
 
 const cabangList = ref([])
 const loading = ref(false)
@@ -251,7 +251,7 @@ const errorMsg = ref('')
 
 const searchQuery = ref('')
 const currentPage = ref(1)
-const totalPages = ref(1)
+const totalPages  = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
 const itemsPerPage = 10
 const showUrutDropdown = ref(false)
 const sortKey = ref('id-desc')
@@ -284,13 +284,12 @@ async function fetchCabang() {
     const res = await axios.get('/api/cabang/', { 
       headers: { Authorization: `Bearer ${token}` },
       params: {
-        page: currentPage.value,
-        limit: itemsPerPage,
+        page: 1,
+        limit: 999999999,
         search: searchQuery.value
       }
     })
     cabangList.value = res.data.data
-    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = 'Gagal memuat data cabang.'
   } finally {
@@ -311,8 +310,6 @@ watch(searchQuery, () => {
   }, 400)
 })
 
-watch(currentPage, () => fetchCabang())
-
 function formatTanggal(isoString) {
   if (!isoString) return '-'
   const d = new Date(isoString)
@@ -332,7 +329,11 @@ const sortedData = computed(() => {
   }
 })
 
-const paginatedData = computed(() => sortedData.value)
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return sortedData.value.slice(start, end)
+})
 
 let hideTimeout = null
 function handleMouseEnter() {
@@ -389,11 +390,15 @@ async function handleSimpan() {
 
     if (isEdit.value) {
       await axios.put(`/api/cabang/${selectedCabang.value.id}`, payload, { headers: { Authorization: `Bearer ${token}` } })
+      closeModal()
+      fetchCabang()
+      addToast('Berhasil memperbarui cabang.', 'success')
     } else {
       await axios.post('/api/cabang/', payload, { headers: { Authorization: `Bearer ${token}` } })
+      closeModal()
+      fetchCabang()
+      addToast('Berhasil menambahkan cabang.', 'success')
     }
-    closeModal()
-    fetchCabang()
   } catch (err) {
     formError.value = err.response?.data?.detail || 'Gagal menyimpan data.'
   } finally {
@@ -414,8 +419,9 @@ async function confirmDelete() {
     await axios.delete(`/api/cabang/${selectedCabang.value.id}`, { headers: { Authorization: `Bearer ${token}` } })
     showDeleteModal.value = false
     fetchCabang()
+    addToast('Berhasil menghapus cabang.', 'success')
   } catch (err) {
-    alert('Gagal menghapus cabang.')
+    addToast('Gagal menghapus cabang.', 'error')
   } finally {
     deleting.value = false
   }

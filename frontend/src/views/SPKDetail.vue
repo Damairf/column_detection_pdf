@@ -236,11 +236,6 @@
 
         </div>
       </div>
-
-      <!-- Footer Warning -->
-      <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-        Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-      </div> -->
     </div>
 
     <!-- Modal Ubah SPK -->
@@ -398,6 +393,7 @@ import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import { useToast } from '../composables/useToast'
 
 const route  = useRoute()
 const router = useRouter()
@@ -408,6 +404,7 @@ const dokumenList  = ref([])
 const listTemplate = ref([])
 const listCabang   = ref([])
 
+const { addToast } = useToast()
 const loadingSPK     = ref(false)
 const loadingDokumen = ref(false)
 
@@ -530,7 +527,7 @@ async function fetchData() {
 
   try {
     const resDok = await axios.get(`/api/beranda/dokumen?id_spk=${spkId}`, { headers: { Authorization: `Bearer ${token}` } })
-    dokumenList.value = resDok.data
+    dokumenList.value = Array.isArray(resDok.data) ? resDok.data : (resDok.data?.data ?? [])
   } catch (err) {
     console.error('Gagal memuat dokumen')
   } finally {
@@ -539,7 +536,7 @@ async function fetchData() {
 
   try {
     const resTemp = await axios.get('/api/template/list', { headers: { Authorization: `Bearer ${token}` } })
-    listTemplate.value = resTemp.data
+    listTemplate.value = Array.isArray(resTemp.data) ? resTemp.data : (resTemp.data?.data ?? [])
   } catch (err) {}
 
   try {
@@ -574,6 +571,7 @@ async function handleUpdate() {
     await axios.put(`/api/spk/${spkId}`, form.value, { headers: { Authorization: `Bearer ${token}` } })
     closeEditModal()
     fetchData()
+    addToast('SPK berhasil diubah.', 'success')
   } catch (err) {
     formError.value = err.response?.data?.detail || 'Gagal mengubah SPK'
   } finally {
@@ -589,6 +587,7 @@ async function handleDelete() {
     const token = localStorage.getItem('token')
     await axios.delete(`/api/spk/${spkId}`, { headers: { Authorization: `Bearer ${token}` } })
     showDeleteModal.value = false
+    addToast('SPK berhasil dihapus.', 'success')
     router.push('/spk')
   } catch (err) {
     alert('Gagal menghapus SPK')

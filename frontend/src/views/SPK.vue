@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
     <div class="flex flex-col min-h-full">
+
       <div class="flex items-center justify-between mb-4">
         <div class="relative">
           <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
@@ -76,16 +77,17 @@
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Tanggal Retail</th>
                 <th class="px-5 py-3.5 text-center font-semibold text-gray-700">Cabang</th>
                 <th v-if="currentUser.role === 'admin'" class="px-5 py-3.5 text-center font-semibold text-gray-700">ID Template</th>
-                <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Status</th>
+                <th class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Aktivasi</th>
+                <th v-if="currentUser.role === 'user'" class="px-5 py-3.5 text-center font-semibold text-gray-700 w-32">Status</th>
                 <th v-if="currentUser.role === 'admin'" class="px-5 py-3.5 text-center font-semibold text-gray-700 w-24">Detail</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="5" class="px-5 py-10 text-center text-gray-400 text-sm">Memuat data...</td>
+                <td colspan="8" class="px-5 py-10 text-center text-gray-400 text-sm">Memuat data...</td>
               </tr>
               <tr v-else-if="paginatedData.length === 0">
-                <td colspan="5" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada data ditemukan.</td>
+                <td colspan="8" class="px-5 py-10 text-center text-gray-400 text-sm">Tidak ada data ditemukan.</td>
               </tr>
               <tr v-else v-for="spk in paginatedData" :key="spk.id" class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td class="px-5 py-3 text-center text-gray-700 font-medium">{{ spk.id }}</td>
@@ -93,6 +95,7 @@
                 <td class="px-5 py-3 text-center text-gray-500">{{ formatTanggal(spk.tgl_retail) }}</td>
                 <td class="px-5 py-3 text-center text-gray-700">{{ getNamaCabang(spk.id_cabang) }}</td>
                 <td v-if="currentUser.role === 'admin'" class="px-5 py-3 text-center text-gray-500">{{ spk.id_template ?? '—' }}</td>
+                  <!-- Kolom Aktivasi -->
                   <td class="px-5 py-3 text-center">
                     <select
                       v-if="currentUser.role === 'admin'"
@@ -106,6 +109,14 @@
                     </select>
                     <span
                       v-else
+                      class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-gray-700 font-medium"
+                    >
+                      {{ spk.status ?? 'Aktif' }}
+                    </span>
+                  </td>
+                  <!-- Kolom Status (hanya user) -->
+                  <td v-if="currentUser.role === 'user'" class="px-5 py-3 text-center">
+                    <span
                       class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
                       :class="getSpkStatus(spk.id) === 'Sudah' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
                     >
@@ -130,12 +141,9 @@
           <button @click="goToPage(totalPages)" :disabled="currentPage === totalPages || totalPages === 0" class="w-9 h-9 flex items-center justify-center rounded-lg font-bold transition" :class="currentPage === totalPages || totalPages === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-700 cursor-pointer'"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg></button>
         </div>
       </div>
-      <!-- Footer Warning -->
-      <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-        Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-      </div> -->
     </div>
     
+    <!-- Modal Tambah SPK -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="closeModal">
       <div class="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl relative">
         <h2 class="text-xl font-bold text-gray-800 mb-6">Tambah SPK</h2>
@@ -220,193 +228,139 @@
         </form>
       </div>
     </div>
+
     <!-- Modal Upload SPK -->
     <div
       v-if="showUploadModal"
-      class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3"
+      class="fixed inset-0 z-50 flex items-center justify-center"
       style="background: rgba(0,0,0,0.35);"
       @click.self="closeUploadModal"
     >
-      <!-- Notifikasi Error Upload -->
-      <div
-        v-if="uploadError"
-        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
-        style="border-left: 3px solid #9b3a2a;"
-      >
-        <span class="text-sm text-gray-700">{{ uploadError }}</span>
-      </div>
-
-      <!-- Notifikasi Duplikat Upload -->
-      <div
-        v-if="uploadDuplikat.length > 0"
-        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
-        style="border-left: 3px solid #8a6d1e;"
-      >
-        <span class="text-sm text-gray-700"><strong>{{ uploadDuplikat.length }} SPK</strong> sudah pernah ditambahkan sebelumnya</span>
-      </div>
-
-      <!-- Notifikasi Sukses Upload -->
-      <div
-        v-if="uploadSuccess"
-        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
-        style="border-left: 3px solid #3d6b28;"
-      >
-        <span class="text-sm text-gray-700">{{ uploadSuccess }}</span>
-      </div>
-
-      <!-- Progress Upload -->
-      <div
-        v-if="isUploading"
-        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
-      >
-        <div class="flex justify-between mb-2">
-          <span class="text-xs text-gray-500">Mengunggah {{ uploadProgress.current }} / {{ uploadProgress.total }} SPK...</span>
-          <span class="text-xs text-gray-500">{{ uploadProgress.percent }}%</span>
-        </div>
-        <div class="w-full bg-gray-200 h-1">
-          <div class="bg-gray-600 h-1 transition-all duration-300" :style="{ width: uploadProgress.percent + '%' }"></div>
-        </div>
-      </div>
-
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-6 p-8">
-        <div
-          class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-14 px-6 mb-6 transition-colors cursor-pointer"
-          :class="isDragging
-            ? 'border-gray-500 bg-gray-100'
-            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
-          @dragover.prevent="isDragging = true"
-          @dragleave.prevent="isDragging = false"
-          @drop.prevent="handleDrop"
-          @click="triggerFileInput"
-        >
-          <div class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+
+        <!-- State: Uploading -->
+        <div v-if="isUploading" class="flex flex-col items-center justify-center py-10">
+          <!-- Spinner animation -->
+          <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-5">
+            <svg class="animate-spin h-7 w-7 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
           </div>
-          <p class="text-sm text-gray-500">Tarik dan unggah file XLSX anda</p>
-          <p class="text-xs text-gray-400 mt-1">Format: Nomor SPK, Nama SPK, Tanggal Retail, ID Cabang, ID Template</p>
+          <p class="text-sm font-semibold text-gray-700 mb-1">Mengunggah SPK...</p>
+          <p class="text-xs text-gray-400 mb-5">{{ uploadProgress.current }} / {{ uploadProgress.total }} SPK diproses</p>
+          <!-- Progress bar -->
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div
+              class="bg-gray-600 h-2 rounded-full transition-all duration-300"
+              :style="{ width: uploadProgress.percent + '%' }"
+            ></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-2">{{ uploadProgress.percent }}%</p>
         </div>
 
-        <input ref="fileInputRef" type="file" accept=".xlsx" class="hidden" @change="handleFileInput" />
-
-        <div class="flex justify-center gap-3">
-          <button
-            @click.stop="triggerFileInput"
-            :disabled="isUploading"
-            class="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm"
-            :class="isUploading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
+        <!-- State: Default (drag & drop) -->
+        <template v-else>
+          <div
+            class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-14 px-6 mb-6 transition-colors cursor-pointer"
+            :class="isDragging
+              ? 'border-gray-500 bg-gray-100'
+              : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="handleDrop"
+            @click="triggerFileInput"
           >
-            <span v-if="isUploading" class="flex items-center gap-2">
-              <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            <div class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              Mengunggah...
-            </span>
-            <span v-else class="flex items-center gap-2">
+            </div>
+            <p class="text-sm text-gray-500">Tarik dan unggah file XLSX anda</p>
+            <p class="text-xs text-gray-400 mt-1">Format: Nomor SPK, Nama SPK, Tanggal Retail, ID Cabang, ID Template</p>
+          </div>
+
+          <div class="flex justify-center gap-3">
+            <button
+              @click.stop="triggerFileInput"
+              class="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm cursor-pointer"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
               Unggah file
-            </span>
-          </button>
-        </div>
+            </button>
+          </div>
+        </template>
+
+        <input ref="fileInputRef" type="file" accept=".xlsx" class="hidden" @change="handleFileInput" />
       </div>
     </div>
+
     <!-- Modal Aktivasi SPK -->
     <div
       v-if="showAktivasiModal"
-      class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3"
+      class="fixed inset-0 z-50 flex items-center justify-center"
       style="background: rgba(0,0,0,0.35);"
       @click.self="closeAktivasiModal"
     >
-      <!-- Notifikasi Error Aktivasi -->
-      <div
-        v-if="aktivasiError"
-        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
-        style="border-left: 3px solid #9b3a2a;"
-      >
-        <span class="text-sm text-gray-700">{{ aktivasiError }}</span>
-      </div>
-
-      <!-- Notifikasi Tidak Ditemukan Aktivasi -->
-      <div
-        v-if="aktivasiTidakDitemukan.length > 0"
-        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
-        style="border-left: 3px solid #8a6d1e;"
-      >
-        <span class="text-sm text-gray-700"><strong>{{ aktivasiTidakDitemukan.length }} SPK</strong> tidak ditemukan di dalam sistem</span>
-      </div>
-
-      <!-- Notifikasi Sukses Aktivasi -->
-      <div
-        v-if="aktivasiSuccess"
-        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
-        style="border-left: 3px solid #3d6b28;"
-      >
-        <span class="text-sm text-gray-700">{{ aktivasiSuccess }}</span>
-      </div>
-
-      <!-- Progress Aktivasi -->
-      <div
-        v-if="isAktivasi"
-        class="w-full max-w-lg mx-6 bg-white rounded px-4 py-3"
-      >
-        <div class="flex justify-between mb-2">
-          <span class="text-xs text-gray-500">Mengunggah {{ aktivasiProgress.current }} / {{ aktivasiProgress.total }} SPK...</span>
-          <span class="text-xs text-gray-500">{{ aktivasiProgress.percent }}%</span>
-        </div>
-        <div class="w-full bg-gray-200 h-1">
-          <div class="bg-gray-600 h-1 transition-all duration-300" :style="{ width: aktivasiProgress.percent + '%' }"></div>
-        </div>
-      </div>
-
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-6 p-8">
-        <div
-          class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-14 px-6 mb-6 transition-colors cursor-pointer"
-          :class="isAktivasiDragging
-            ? 'border-gray-500 bg-gray-100'
-            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
-          @dragover.prevent="isAktivasiDragging = true"
-          @dragleave.prevent="isAktivasiDragging = false"
-          @drop.prevent="handleAktivasiDrop"
-          @click="triggerAktivasiFileInput"
-        >
-          <div class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+
+        <!-- State: Uploading/Processing -->
+        <div v-if="isAktivasi" class="flex flex-col items-center justify-center py-10">
+          <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-5">
+            <svg class="animate-spin h-7 w-7 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
           </div>
-          <p class="text-sm text-gray-500">Tarik dan unggah file XLSX anda</p>
-          <p class="text-xs text-gray-400 mt-1">Format: Nomor SPK, Nama SPK, Tanggal Retail, Status</p>
-          <p class="text-xs text-gray-400 mt-0.5">(Status: 1 = Aktif dan 0 = Nonaktif)</p>
+          <p class="text-sm font-semibold text-gray-700 mb-1">Memproses aktivasi SPK...</p>
+          <p class="text-xs text-gray-400 mb-5">{{ aktivasiProgress.current }} / {{ aktivasiProgress.total }} SPK diproses</p>
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div
+              class="bg-gray-600 h-2 rounded-full transition-all duration-300"
+              :style="{ width: aktivasiProgress.percent + '%' }"
+            ></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-2">{{ aktivasiProgress.percent }}%</p>
         </div>
 
-        <input ref="aktivasiFileInputRef" type="file" accept=".xlsx" class="hidden" @change="handleAktivasiFileInput" />
-
-        <div class="flex justify-center gap-3">
-          <button
-            @click.stop="triggerAktivasiFileInput"
-            :disabled="isAktivasi"
-            class="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm"
-            :class="isAktivasi ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
+        <!-- State: Default (drag & drop) -->
+        <template v-else>
+          <div
+            class="border-2 border-dashed rounded-xl flex flex-col items-center justify-center py-14 px-6 mb-6 transition-colors cursor-pointer"
+            :class="isAktivasiDragging
+              ? 'border-gray-500 bg-gray-100'
+              : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'"
+            @dragover.prevent="isAktivasiDragging = true"
+            @dragleave.prevent="isAktivasiDragging = false"
+            @drop.prevent="handleAktivasiDrop"
+            @click="triggerAktivasiFileInput"
           >
-            <span v-if="isAktivasi" class="flex items-center gap-2">
-              <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            <div class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              Memproses...
-            </span>
-            <span v-else class="flex items-center gap-2">
+            </div>
+            <p class="text-sm text-gray-500">Tarik dan unggah file XLSX anda</p>
+            <p class="text-xs text-gray-400 mt-1">Format: Nomor SPK, Nama SPK, Tanggal Retail, Status</p>
+            <p class="text-xs text-gray-400 mt-0.5">(Status: 1 = Aktif dan 0 = Nonaktif)</p>
+          </div>
+
+          <div class="flex justify-center gap-3">
+            <button
+              @click.stop="triggerAktivasiFileInput"
+              class="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition shadow-sm cursor-pointer"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
               Unggah file
-            </span>
-          </button>
-        </div>
+            </button>
+          </div>
+        </template>
+
+        <input ref="aktivasiFileInputRef" type="file" accept=".xlsx" class="hidden" @change="handleAktivasiFileInput" />
       </div>
     </div>
   </AppLayout>
@@ -417,9 +371,11 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import { useToast } from '../composables/useToast'
 import * as XLSX from 'xlsx'
 
 const router = useRouter()
+const { addToast } = useToast()
 
 const spks = ref([])
 const listTemplate = ref([])
@@ -430,39 +386,44 @@ const errorMsg = ref('')
 const showUploadModal = ref(false)
 const isDragging      = ref(false)
 const isUploading     = ref(false)
-const uploadError   = ref('')
-const uploadSuccess = ref('')
-const uploadDuplikat = ref([])
 const fileInputRef    = ref(null)
 const uploadProgress  = ref({ current: 0, total: 0, percent: 0 })
 
 const showAktivasiModal      = ref(false)
 const isAktivasiDragging     = ref(false)
 const isAktivasi             = ref(false)
-const aktivasiError          = ref('')
-const aktivasiSuccess        = ref('')
-const aktivasiTidakDitemukan = ref([])
 const aktivasiFileInputRef   = ref(null)
 const aktivasiProgress       = ref({ current: 0, total: 0, percent: 0 })
 
 const searchQuery = ref('')
 const currentPage = ref(1)
-const totalPages = ref(1)
 const itemsPerPage = 10
+const totalPages = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
 const showUrutDropdown = ref(false)
 const sortKey = ref('tgl-desc')
 const uploadedSpkIds = ref(new Set())
 
 function getSpkStatus(spkId) {
-  return uploadedSpkIds.value.has(spkId) ? 'Sudah' : 'Belum'
+  return uploadedSpkIds.value.has(String(spkId)) ? 'Sudah' : 'Belum'
 }
 
-const sortOptions = [
-  { label: 'A - Z (Menurun)',   value: 'az-desc'  },
-  { label: 'A - Z (Menaik)',    value: 'az-asc'   },
-  { label: 'Tanggal (Menurun)', value: 'tgl-desc' },
-  { label: 'Tanggal (Menaik)',  value: 'tgl-asc'  },
-]
+const sortOptions = computed(() => {
+  const options = [
+    { label: 'A - Z (Menurun)',   value: 'az-desc'  },
+    { label: 'A - Z (Menaik)',    value: 'az-asc'   },
+    { label: 'Tanggal (Menurun)', value: 'tgl-desc' },
+    { label: 'Tanggal (Menaik)',  value: 'tgl-asc'  },
+    { label: 'Aktivasi (Aktif)',    value: 'status-aktif' },
+    { label: 'Aktivasi (Nonaktif)', value: 'status-nonaktif' },
+  ]
+  if (currentUser.value.role === 'user') {
+    options.push(
+      { label: 'Status (Sudah)',      value: 'upload-sudah' },
+      { label: 'Status (Belum)',      value: 'upload-belum' }
+    )
+  }
+  return options
+})
 
 const showModal = ref(false)
 const saving = ref(false)
@@ -510,13 +471,12 @@ async function fetchSPK() {
     const res = await axios.get('/api/spk/', { 
       headers: { Authorization: `Bearer ${token}` },
       params: {
-        page: currentPage.value,
-        limit: itemsPerPage,
+        page: 1,
+        limit: 999999999,
         search: searchQuery.value
       }
     })
     spks.value = res.data.data
-    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = 'Gagal memuat data SPK.'
   } finally {
@@ -528,16 +488,23 @@ async function fetchTemplates() {
   try {
     const token = localStorage.getItem('token')
     const res = await axios.get('/api/template/list', { headers: { Authorization: `Bearer ${token}` } })
-    listTemplate.value = res.data
+    listTemplate.value = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
   } catch (err) {}
 }
 
 async function fetchCabang() {
+  if (currentUser.value.role !== 'admin') return
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('/api/pengguna/cabang', { headers: { Authorization: `Bearer ${token}` } })
-    listCabang.value = res.data.sort((a, b) => a.nama_cabang.localeCompare(b.nama_cabang))
-  } catch (err) {}
+    const res = await axios.get('/api/pengguna/cabang', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    listCabang.value = res.data.sort((a, b) =>
+      a.nama_cabang.localeCompare(b.nama_cabang)
+    )
+  } catch (err) {
+    console.error('Gagal memuat cabang:', err)
+  }
 }
 
 function getNamaCabang(id_cabang) {
@@ -552,10 +519,29 @@ function getNamaCabang(id_cabang) {
 async function fetchDokumen() {
   try {
     const token = localStorage.getItem('token')
-    const res = await axios.get('/api/beranda/dokumen', { headers: { Authorization: `Bearer ${token}` } })
-    const ids = res.data.map(d => d.id_spk).filter(Boolean)
+
+    const resFirst = await axios.get('/api/beranda/dokumen', {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { page: 1, limit: 1 }
+    })
+
+    const total = resFirst.data.total || 0
+    if (total === 0) {
+      uploadedSpkIds.value = new Set()
+      return
+    }
+
+    const res = await axios.get('/api/beranda/dokumen', {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { page: 1, limit: total }
+    })
+
+    const arr = res.data.data ?? []
+    const ids = arr.map(d => String(d.id_spk)).filter(Boolean)
     uploadedSpkIds.value = new Set(ids)
-  } catch (err) {}
+  } catch (err) {
+    console.error('Gagal memuat dokumen terupload:', err)
+  }
 }
 
 onMounted(() => {
@@ -574,7 +560,7 @@ watch(searchQuery, () => {
   }, 400)
 })
 
-watch(currentPage, () => fetchSPK())
+
 
 function formatTanggal(isoString) {
   if (!isoString) return '-'
@@ -590,12 +576,36 @@ const sortedData = computed(() => {
       case 'az-desc':  return b.nama_spk.localeCompare(a.nama_spk)
       case 'tgl-asc':  return new Date(a.tgl_retail) - new Date(b.tgl_retail)
       case 'tgl-desc': return new Date(b.tgl_retail) - new Date(a.tgl_retail)
+      case 'status-aktif': {
+        const statusA = a.status ?? 'Aktif'
+        const statusB = b.status ?? 'Aktif'
+        return statusA === statusB ? 0 : statusA === 'Aktif' ? -1 : 1
+      }
+      case 'status-nonaktif': {
+        const statusA = a.status ?? 'Aktif'
+        const statusB = b.status ?? 'Aktif'
+        return statusA === statusB ? 0 : statusA === 'Nonaktif' ? -1 : 1
+      }
+      case 'upload-sudah': {
+        const uploadA = getSpkStatus(a.id)
+        const uploadB = getSpkStatus(b.id)
+        return uploadA === uploadB ? 0 : uploadA === 'Sudah' ? -1 : 1
+      }
+      case 'upload-belum': {
+        const uploadA = getSpkStatus(a.id)
+        const uploadB = getSpkStatus(b.id)
+        return uploadA === uploadB ? 0 : uploadA === 'Belum' ? -1 : 1
+      }
       default: return 0
     }
   })
 })
 
-const paginatedData = computed(() => sortedData.value)
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return sortedData.value.slice(start, end)
+})
 
 let hideTimeout = null
 function handleMouseEnter() { if (hideTimeout) clearTimeout(hideTimeout); showUrutDropdown.value = true }
@@ -612,9 +622,6 @@ function onPageInputChange(e) {
 function closeUploadModal() {
   if (isUploading.value) return
   showUploadModal.value = false
-  uploadError.value     = ''
-  uploadSuccess.value   = ''
-  uploadDuplikat.value  = []
   isDragging.value      = false
   uploadProgress.value  = { current: 0, total: 0, percent: 0 }
 }
@@ -636,12 +643,8 @@ function handleDrop(e) {
 }
 
 async function prosesFileXLSX(file) {
-  uploadError.value   = ''
-  uploadSuccess.value = ''
-  uploadDuplikat.value = []
-
   if (!file.name.toLowerCase().endsWith('.xlsx')) {
-    uploadError.value = 'File harus berformat XLSX.'
+    addToast('File harus berformat XLSX.', 'error')
     return
   }
 
@@ -660,7 +663,7 @@ async function prosesFileXLSX(file) {
       )
 
       if (dataRows.length === 0) {
-        uploadError.value = 'File kosong atau format tidak sesuai.'
+        addToast('File kosong atau format tidak sesuai.', 'error')
         isUploading.value = false
         return
       }
@@ -721,28 +724,34 @@ async function prosesFileXLSX(file) {
         }
       }
 
+      // Show toast notifications after upload finishes
       if (berhasil > 0) {
-        uploadSuccess.value = `${berhasil} SPK berhasil ditambahkan.`
+        addToast(`${berhasil} SPK berhasil ditambahkan.`, 'success')
       }
       if (duplikat.length > 0) {
-        uploadDuplikat.value = duplikat
+        addToast(`${duplikat.length} SPK sudah pernah ditambahkan sebelumnya.`, 'warning')
       }
       if (gagal > 0) {
-        uploadError.value = `${gagal} SPK gagal ditambahkan: ${pesanGagal.join(' | ')}`
+        addToast(`${gagal} SPK gagal ditambahkan: ${pesanGagal.join(' | ')}`, 'error')
       }
 
       fetchSPK()
+      // Close modal after upload done
+      showUploadModal.value = false
+      uploadProgress.value  = { current: 0, total: 0, percent: 0 }
 
     } catch (err) {
-      uploadError.value = 'Gagal memproses file XLSX. Pastikan format sesuai.'
+      addToast('Gagal memproses file XLSX. Pastikan format sesuai.', 'error')
+      showUploadModal.value = false
     } finally {
       isUploading.value = false
     }
   }
 
   reader.onerror = () => {
-    uploadError.value = 'Gagal membaca file.'
+    addToast('Gagal membaca file.', 'error')
     isUploading.value = false
+    showUploadModal.value = false
   }
 
   reader.readAsArrayBuffer(file)
@@ -763,9 +772,6 @@ function closeModal() {
 function closeAktivasiModal() {
   if (isAktivasi.value) return
   showAktivasiModal.value      = false
-  aktivasiError.value          = ''
-  aktivasiSuccess.value        = ''
-  aktivasiTidakDitemukan.value = []
   isAktivasiDragging.value     = false
   aktivasiProgress.value       = { current: 0, total: 0, percent: 0 }
 }
@@ -787,12 +793,8 @@ function handleAktivasiDrop(e) {
 }
 
 async function prosesAktivasiXLSX(file) {
-  aktivasiError.value          = ''
-  aktivasiSuccess.value        = ''
-  aktivasiTidakDitemukan.value = []
-
   if (!file.name.toLowerCase().endsWith('.xlsx')) {
-    aktivasiError.value = 'File harus berformat XLSX.'
+    addToast('File harus berformat XLSX.', 'error')
     return
   }
 
@@ -811,7 +813,7 @@ async function prosesAktivasiXLSX(file) {
       )
 
       if (dataRows.length === 0) {
-        aktivasiError.value = 'File kosong atau format tidak sesuai.'
+        addToast('File kosong atau format tidak sesuai.', 'error')
         isAktivasi.value    = false
         return
       }
@@ -827,7 +829,6 @@ async function prosesAktivasiXLSX(file) {
       for (let i = 0; i < dataRows.length; i++) {
         const row      = dataRows[i]
         const nomorSPK = String(row[0]).trim()
-
         const statusBaru = String(row[3]).trim() === '1' ? 'Aktif' : 'Nonaktif'
 
         try {
@@ -852,28 +853,33 @@ async function prosesAktivasiXLSX(file) {
         }
       }
 
+      // Show toast notifications after processing finishes
       if (berhasil > 0) {
-        aktivasiSuccess.value = `${berhasil} SPK berhasil diperbarui statusnya.`
+        addToast(`${berhasil} SPK berhasil diperbarui statusnya.`, 'success')
       }
       if (tidakDitemukan.length > 0) {
-        aktivasiTidakDitemukan.value = tidakDitemukan
+        addToast(`${tidakDitemukan.length} SPK tidak ditemukan di dalam sistem.`, 'warning')
       }
       if (gagal > 0) {
-        aktivasiError.value = `${gagal} SPK gagal diproses: ${pesanGagal.join(' | ')}`
+        addToast(`${gagal} SPK gagal diproses: ${pesanGagal.join(' | ')}`, 'error')
       }
 
       fetchSPK()
+      showAktivasiModal.value  = false
+      aktivasiProgress.value   = { current: 0, total: 0, percent: 0 }
 
     } catch (err) {
-      aktivasiError.value = 'Gagal memproses file XLSX. Pastikan format sesuai.'
+      addToast('Gagal memproses file XLSX. Pastikan format sesuai.', 'error')
+      showAktivasiModal.value = false
     } finally {
       isAktivasi.value = false
     }
   }
 
   reader.onerror = () => {
-    aktivasiError.value = 'Gagal membaca file.'
-    isAktivasi.value    = false
+    addToast('Gagal membaca file.', 'error')
+    isAktivasi.value = false
+    showAktivasiModal.value = false
   }
 
   reader.readAsArrayBuffer(file)
@@ -888,6 +894,7 @@ async function handleSimpan() {
     await axios.post('/api/spk/', form.value, { headers: { Authorization: `Bearer ${token}` } })
     closeModal()
     fetchSPK()
+    addToast('Berhasil menambahkan SPK.', 'success')
   } catch (err) {
     formError.value = err.response?.data?.detail || 'Gagal menyimpan SPK'
   } finally {

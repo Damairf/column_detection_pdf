@@ -263,10 +263,6 @@
       </div>
     </div>
 
-    <!-- Footer Warning -->
-    <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-    </div> -->
     </div>
   </AppLayout>
 </template>
@@ -276,6 +272,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
 const route  = useRoute()
@@ -294,6 +291,8 @@ const loading      = ref(false)
 const errorMsg     = ref('')
 const showDeleteModal = ref(false)
 const deleting        = ref(false)
+
+const { addToast } = useToast()
 
 const pdfUrl = computed(() => {
   const path = detail.value.path_pdf
@@ -401,6 +400,7 @@ async function handleDelete() {
       headers: { Authorization: `Bearer ${token}` }
     })
     showDeleteModal.value = false
+    addToast('Dokumen berhasil dihapus.', 'success')
     router.replace('/beranda')
   } catch (err) {
     alert(err.response?.data?.detail || 'Gagal menghapus dokumen.')

@@ -392,7 +392,7 @@ const appliedEndDate    = ref('')
 
 const searchQuery      = ref('')
 const currentPage      = ref(1)
-const totalPages       = ref(1)
+const totalPages       = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
 const itemsPerPage     = 10
 const showUrutDropdown = ref(false)
 const sortKey          = ref('id-desc')
@@ -559,8 +559,8 @@ async function fetchEvaluasi() {
     if (appliedStartDate.value) params.append('start_date', appliedStartDate.value)
     if (appliedEndDate.value)   params.append('end_date',   appliedEndDate.value)
     
-    params.append('page', currentPage.value)
-    params.append('limit', itemsPerPage)
+    params.append('page', 1)
+    params.append('limit', 999999999)
     if (searchQuery.value) params.append('search', searchQuery.value)
 
     const res = await axios.get(`/api/evaluasi/?${params.toString()}`, {
@@ -568,7 +568,6 @@ async function fetchEvaluasi() {
     })
 
     items.value = res.data.data
-    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = err.response?.status === 403
       ? 'Akses ditolak.'
@@ -593,7 +592,11 @@ const sortedData = computed(() => {
   }
 })
 
-const paginatedData = computed(() => sortedData.value)
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return sortedData.value.slice(start, end)
+})
 
 function goToPage(page) {
   currentPage.value = Math.max(1, Math.min(page, totalPages.value))
@@ -674,7 +677,6 @@ watch(searchQuery, () => {
   }, 400)
 })
 
-watch(currentPage, () => fetchEvaluasi())
 
 onMounted(() => {
   fetchCabang()

@@ -209,10 +209,6 @@
 
       </div>
     </div>
-    <!-- Footer Warning -->
-    <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-    </div> -->
     </div>
   </AppLayout>
 </template>
@@ -235,8 +231,8 @@ const loading          = ref(false)
 const errorMsg         = ref('')
 const searchQuery      = ref('')
 const currentPage      = ref(1)
-const totalPages       = ref(1)
 const itemsPerPage     = 10
+const totalPages       = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
 const showUrutDropdown = ref(false)
 const sortKey          = ref('id-desc')
 
@@ -263,13 +259,12 @@ async function fetchData() {
     const response = await axios.get('/api/template/list', {
       headers: { Authorization: `Bearer ${token}` },
       params: {
-        page: currentPage.value,
-        limit: itemsPerPage,
+        page: 1,
+        limit: 999999999,
         search: searchQuery.value
       }
     })
     allData.value = response.data.data
-    totalPages.value = Math.ceil(response.data.total / itemsPerPage) || 1
   } catch (err) {
     errorMsg.value = err.response?.status === 401
       ? 'Sesi habis. Silakan login ulang.'
@@ -290,7 +285,7 @@ watch(searchQuery, () => {
   }, 400)
 })
 
-watch(currentPage, () => fetchData())
+
 
 function formatTanggal(isoString) {
   if (!isoString) return '-'
@@ -311,7 +306,11 @@ const sortedData = computed(() => {
   }
 })
 
-const paginatedData = computed(() => sortedData.value)
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return sortedData.value.slice(start, end)
+})
 
 let hideTimeout = null
 function handleMouseEnter() {

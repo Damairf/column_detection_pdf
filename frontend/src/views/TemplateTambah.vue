@@ -194,10 +194,6 @@
         <span v-else>Simpan</span>
       </button>
     </div>
-    <!-- Footer Warning -->
-    <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-    </div> -->
     </div>
   </AppLayout>
 </template>
@@ -208,6 +204,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
 import * as XLSX from 'xlsx'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -227,6 +224,8 @@ const isDragging      = ref(false)
 const isUploading     = ref(false)
 const uploadError     = ref('')
 const fileInputRef    = ref(null)
+
+const { addToast } = useToast()
 
 const SS_KEY = 'template_tambah_data'
 
@@ -386,7 +385,6 @@ async function handleSimpan() {
     const raw   = sessionStorage.getItem(SS_KEY)
     const data  = raw ? JSON.parse(raw) : {}
 
-
     const resTemplate = await axios.post('/api/template/simpan', {
       nama_template:     namaTemplate.value.trim(),
       pdf_path:          data.pdf_path        || '',
@@ -410,6 +408,7 @@ async function handleSimpan() {
     }
 
     sessionStorage.removeItem(SS_KEY)
+    addToast('Template berhasil ditambahkan.', 'success')
     router.replace('/template')
 
   } catch (err) {

@@ -252,17 +252,34 @@ onMounted(async () => {
     try {
       const token = localStorage.getItem('token')
       const headers = { Authorization: `Bearer ${token}` }
-      const [resSpk, resDoc] = await Promise.all([
-        axios.get('/api/spk/',          { headers }),
-        axios.get('/api/beranda/dokumen', { headers }),
+
+      const [resSpkFirst, resDocFirst] = await Promise.all([
+        axios.get('/api/spk/',            { headers, params: { page: 1, limit: 1 } }),
+        axios.get('/api/beranda/dokumen', { headers, params: { page: 1, limit: 1 } }),
       ])
 
-      const spks   = resSpk.data.filter(s => s.id_cabang === user.value.id_cabang)
-      const docIds = new Set(resDoc.data.map(d => d.id_spk).filter(Boolean))
+      const totalSpk = resSpkFirst.data.total || 0
+      const totalDoc = resDocFirst.data.total || 0
+
+      const [resSpk, resDoc] = await Promise.all([
+        totalSpk > 0
+          ? axios.get('/api/spk/',            { headers, params: { page: 1, limit: totalSpk } })
+          : Promise.resolve({ data: { data: [] } }),
+        totalDoc > 0
+          ? axios.get('/api/beranda/dokumen', { headers, params: { page: 1, limit: totalDoc } })
+          : Promise.resolve({ data: { data: [] } }),
+      ])
+
+      const spks   = resSpk.data.data ?? []
+      const docArr = resDoc.data.data ?? []
+
+      const docIds = new Set(
+        docArr.map(d => String(d.id_spk)).filter(Boolean)
+      )
 
       let count = 0
       for (const s of spks) {
-        if (!docIds.has(s.id)) count++
+        if (!docIds.has(String(s.id))) count++
       }
       unuploadedSpkCount.value = count
     } catch (err) {

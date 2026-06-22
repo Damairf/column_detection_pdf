@@ -212,10 +212,6 @@
 
     </div>
 
-    <!-- Footer Warning -->
-    <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-    </div> -->
     </div>
 
     <!-- Modal Download Data Dokumen -->
@@ -269,7 +265,7 @@ const loading          = ref(false)
 const errorMsg         = ref('')
 const searchQuery      = ref('')
 const currentPage      = ref(1)
-const totalPages       = ref(1)
+const totalPages       = computed(() => Math.ceil(sortedData.value.length / itemsPerPage) || 1)
 const itemsPerPage     = 10
 const showUrutDropdown = ref(false)
 const sortKey          = ref('id-desc')
@@ -298,13 +294,12 @@ async function fetchData(silent = false) {
     const res   = await axios.get('/api/beranda/dokumen', {
       headers: { Authorization: `Bearer ${token}` },
       params: {
-        page: currentPage.value,
-        limit: itemsPerPage,
+        page: 1,
+        limit: 999999999,
         search: searchQuery.value
       }
     })
     allData.value = res.data.data
-    totalPages.value = Math.ceil(res.data.total / itemsPerPage) || 1
   } catch (err) {
     if (!silent) {
       errorMsg.value = err.response?.status === 401
@@ -371,7 +366,11 @@ const sortedData = computed(() => {
   }
 })
 
-const paginatedData = computed(() => sortedData.value)
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return sortedData.value.slice(start, end)
+})
 
 let hideTimeout = null
 function handleMouseEnter() {
@@ -462,7 +461,6 @@ watch(searchQuery, () => {
     fetchData()
   }, 400)
 })
-watch(currentPage, () => fetchData())
 watch(allData, () => startPollingIfNeeded(), { deep: false })
 
 onMounted(async () => {

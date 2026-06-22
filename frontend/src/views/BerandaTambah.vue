@@ -26,7 +26,7 @@
           <p class="text-sm text-gray-500">Tarik dan unggah file PDF anda</p>
         </div>
 
-        <input ref="fileInputRef" type="file" accept=".pdf" class="hidden" @change="handleFileInput" />
+        <input ref="fileInputRef" type="file" accept=".pdf" :multiple="false" class="hidden" @change="handleFileInput" />
 
         <p v-if="uploadError" class="text-red-500 text-sm text-center mb-4">{{ uploadError }}</p>
 
@@ -284,11 +284,6 @@
       </button>
 
     </div>
-
-    <!-- Footer Warning -->
-    <!-- <div class="mt-auto pt-6 text-xs text-gray-400 text-center border-t border-gray-100">
-      Sistem ini bisa melakukan kesalahan. Silahkan periksa kembali hasilnya
-    </div> -->
     </div>
   </AppLayout>
 </template>
@@ -298,10 +293,13 @@ import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppLayout from '../components/AppLayout.vue'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
 const sudahCari      = ref(false)
 const queryDicari    = ref('')
+
+const { addToast } = useToast()
 
 const currentUser = computed(() => {
   try { return JSON.parse(localStorage.getItem('user')) || {} } 
@@ -419,14 +417,25 @@ function closeUploadModal() { uploadError.value = ''; showUploadModal.value = fa
 function triggerFileInput() { fileInputRef.value?.click() }
 
 function handleFileInput(e) {
-  const file = e.target.files[0]
+  const files = e.target.files
+  if (files.length > 1) {
+    addToast('Maksimal hanya 1 file yang dapat diunggah.', 'error')
+    e.target.value = ''
+    return
+  }
+  const file = files[0]
   if (file) prosesFile(file)
   e.target.value = ''
 }
 
 function handleDrop(e) {
   isDragging.value = false
-  const file = e.dataTransfer.files[0]
+  const files = e.dataTransfer.files
+  if (files.length > 1) {
+    addToast('Maksimal hanya 1 file yang dapat diunggah.', 'error')
+    return
+  }
+  const file = files[0]
   if (file) prosesFile(file)
 }
 
@@ -522,6 +531,7 @@ async function handleSimpan() {
       }]
     }, { headers: { Authorization: `Bearer ${token}` } })
 
+    addToast('Dokumen berhasil disimpan.', 'success')
     router.replace('/beranda')
   } catch (err) {
     serverError.value = err.response?.data?.detail || 'Gagal menyimpan dokumen. Coba lagi.'
